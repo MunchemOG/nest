@@ -9,6 +9,8 @@ public struct PetBrain: Sendable {
         var until = Date.distantPast
         var travel: TimeInterval = 0
         var reaction: PetReaction?
+        var fledFrom: Perch?
+        var returnAt = Date.distantPast
     }
 
     let settings: PetSettings
@@ -16,6 +18,7 @@ public struct PetBrain: Sendable {
     private var previousMode: PetMode?
     private var previousFrontApp: String?
     private var hasTicked = false
+    var stillSince: Date?
 
     /// A brain using `settings`.
     public init(settings: PetSettings) {
@@ -38,11 +41,13 @@ public struct PetBrain: Sendable {
         previousMode = plan.mode
         previousFrontApp = world.frontApp
         hasTicked = true
-        return Dictionary(uniqueKeysWithValues: Bird.allCases.map { bird in
+        var intents = Dictionary(uniqueKeysWithValues: Bird.allCases.map { bird in
             let pet = pets[bird] ?? Pet()
             let target = pet.target ?? world.homes[bird] ?? PetPoint(x: 0, y: 0)
             return (bird, PetIntent(activity: pet.activity, reaction: pet.reaction, target: target, travel: pet.travel))
         })
+        reactToPointer(plan: plan, world: world, intents: &intents, using: &rng)
+        return intents
     }
 
     /// Perch points held by every bird but `bird`.
@@ -62,6 +67,7 @@ public struct PetBrain: Sendable {
     /// Sits on its own perch for one dwell.
     func perch(_ pet: inout Pet, quirks: BirdQuirks, now: Date, using rng: inout some RandomNumberGenerator) {
         pet.activity = .perched
+        pet.reaction = nil
         pet.target = pet.perch?.point ?? pet.target
         pet.travel = 0
         pet.until = now + .random(in: quirks.dwell, using: &rng)
@@ -88,6 +94,7 @@ public struct PetBrain: Sendable {
             let travel = urgent ? PetSettings.goHome : previousMode == .lively ? settings.livelySettle : settings.flightTime
             pet.activity = .flyingHome
             pet.perch = nil
+            pet.fledFrom = nil
             pet.target = home
             pet.travel = travel
             pet.until = world.now + travel
@@ -98,7 +105,9 @@ public struct PetBrain: Sendable {
     private func stayOut(_ bird: Bird, _ pet: inout Pet, plan: PetPlan, world: PetWorld, appChanged: Bool, using rng: inout some RandomNumberGenerator) {
         let now = world.now
         let quirks = BirdQuirks.of(bird)
-        pet.reaction = nil
+        if pet.activity != .fleeing {
+            pet.reaction = nil
+        }
         switch pet.activity {
         case .home, .flyingHome:
             if let perch = PerchChoice.choose(for: bird, plan: plan, world: world, taken: taken(besides: bird),
