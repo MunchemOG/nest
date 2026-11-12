@@ -24,8 +24,8 @@ If these docs disagree, `CLAUDE.md` wins, then `docs/queue.md`, then the rest.
 
 ## Right now
 
-- The look is not final (see `docs/design-status.md`). Build only the tasks that don't depend on it: N1-01, N1-02, N1-04, N1-05 and N1-13 to N1-16. If asked to build fonts (N1-03), a component or a screen (N1-06 to N1-12, N1-17 onward), stop and say the look is on hold.
-- Order: N1-01, N1-02, N1-04, N1-05, N1-13, N1-14, N1-15, N1-16.
+- The look is not final (see `docs/design-status.md`). Build only the tasks that don't depend on it: N1-01, N1-02, N1-04, N1-05, N1-13 to N1-16, and the pet brain PB-01 to PB-06 (no UI; spec `docs/superpowers/specs/2026-11-11-pet-mode-design.md`, plan `docs/superpowers/plans/2026-11-11-pet-brain.md`). If asked to build fonts (N1-03), a component or a screen (N1-06 to N1-12, N1-17 onward), stop and say the look is on hold.
+- Order: N1-01, N1-02, N1-04, N1-05, N1-13, N1-14, N1-15, N1-16, PB-01, PB-02, PB-03, PB-04, PB-05, PB-06.
 - `docs/event-bus.md` is the contract for events. Code against it exactly.
 
 ## How a task runs

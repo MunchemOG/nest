@@ -2,7 +2,7 @@
 
 One task is one Claude Code session. Start each on its own branch (`task/<id>`). A task is done only when its "done means" test passes along with the whole suite.
 
-**Building now:** N1-01, N1-02, N1-04, N1-05 and N1-13 to N1-16. **On hold until the look is final:** N1-03 (fonts may change), N1-06 to N1-12 and N1-17 onward.
+**Building now:** N1-01, N1-02, N1-04, N1-05, N1-13 to N1-16, and PB-01 to PB-06. **On hold until the look is final:** N1-03 (fonts may change), N1-06 to N1-12 and N1-17 onward.
 
 ## Phase 1 — App shell
 
@@ -26,6 +26,17 @@ One task is one Claude Code session. Start each on its own branch (`task/<id>`).
 | N1-14 | `demo-day.jsonl`: one invented day of about 60 events from all six birds | A test decodes the whole file in time order with no errors | N1-13 |
 | N1-15 | A `FlockSource` that the app reads events from, with a fake that replays `demo-day.jsonl` | A test replays the day and receives the events in order | N1-14 |
 | N1-16 | `FlockState`: each bird's status, latest action and "doing" line, built from events | After replaying the demo day, a test finds the expected status for all six birds | N1-15 |
+
+### Pet brain (no UI; buildable now; spec `docs/superpowers/specs/2026-11-11-pet-mode-design.md`)
+
+| id | goal | done_means | needs |
+| --- | --- | --- | --- |
+| PB-01 | Pet settings, world snapshot, perches, seeded random and the work-streak tracker | A test sees a 50-minute streak survive a 4-minute pause and reset after a 5-minute one | N1-16 |
+| PB-02 | Each bird's quirks and the pet activities | A test pins every bird's personality numbers and favourite apps | PB-01 |
+| PB-03 | `PetScheduler`: modes, precedence, who is out | Tests for lively at 3 min, break buddy at 50 min with its 20-min cool-down, visitor timing, hidden causes, and favoured visitor | PB-02 |
+| PB-04 | `PetBrain` movement: out, perch, habits, home | A bird turning active heads home on the next tick; hidden sends all home in 420 ms; no shared perches | PB-03 |
+| PB-05 | `PetBrain` pointer reactions | A fast pointer makes Swift flee and leaves Owl; each bird's hover reaction matches the spec | PB-04 |
+| PB-06 | `PetDirector`: one tick from world to intents | A simulated two-hour session replays identically per seed and keeps every rule | PB-05 |
 
 ### On hold: components (wait for the final look)
 
