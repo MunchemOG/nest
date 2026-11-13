@@ -30,15 +30,25 @@ public struct ManualRunner: Sendable {
         self.watch = watch
     }
 
-    /// What the session is told: the task, the rules to follow, and to leave merging alone.
-    public static func prompt(for task: QueueTask) -> String {
+    /// What the session is told: the repository's rules, then the task and to leave merging alone.
+    public static func prompt(for task: QueueTask, rules: String) -> String {
         """
+        \(rules)
+
         Do task \(task.id). Goal: \(task.goal). Done means: \(task.doneMeans). \
-        Follow CLAUDE.md's task flow on branch \(task.branch). \
+        Follow the rules above (CLAUDE.md) and their task flow on branch \(task.branch). \
         Do not merge: commit on \(task.branch) and stop. \
         Do not ask questions; if you are blocked, say so with Result: held or unclear. \
         End with the summary block.
         """
+    }
+
+    /// The rules every session follows: the repository's `CLAUDE.md`.
+    public func rules() throws -> String {
+        guard let rules = try? String(contentsOf: repository.appending(path: "CLAUDE.md"), encoding: .utf8) else {
+            throw ManualRunnerError.noRules
+        }
+        return rules
     }
 
     /// Runs `task` and reports whether it ended done or held; the work stays on the task's branch either way.
@@ -46,10 +56,11 @@ public struct ManualRunner: Sendable {
         guard try await git("status", "--porcelain", "--untracked-files=no").isEmpty else {
             throw ManualRunnerError.uncommittedChanges
         }
+        let rules = try rules()
         try await switchToBranch(of: task)
 
         watch("\(task.id): session started")
-        let said = try await shell.run(session + [Self.prompt(for: task)], in: repository, watch: watch)
+        let said = try await shell.run(session + [Self.prompt(for: task, rules: rules)], in: repository, watch: watch)
         let summary = SummaryBlock(in: said.text)
 
         if let held = try await reasonToHold(task, summary: summary, status: said.status) {
