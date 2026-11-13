@@ -1,3 +1,5 @@
+import NestKit
+
 /// What a bird avatar shows about the bird.
 enum BirdAvatarState: String, CaseIterable, Hashable, Sendable {
     /// Quiet: just the tile.
@@ -6,6 +8,15 @@ enum BirdAvatarState: String, CaseIterable, Hashable, Sendable {
     case active
     /// Paused: the tile loses its colour and shows a pause badge.
     case paused
+
+    /// The avatar state for a bird's status; an asleep bird rests until N1-22 gives it its own look.
+    init(_ status: BirdStatus) {
+        switch status {
+        case .active: self = .active
+        case .paused: self = .paused
+        case .resting, .asleep: self = .resting
+        }
+    }
 
     /// What sits on the tile's corner.
     enum Badge: Hashable, Sendable {

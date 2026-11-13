@@ -28,6 +28,18 @@ enum CSSValue {
         return value
     }
 
+    /// `blur(26px) saturate(1.6)`.
+    static func blur(_ text: String) throws -> NestEffect.Blur {
+        let parts = text.split(separator: " ")
+        guard parts.count == 2,
+              parts[0].hasPrefix("blur("), parts[0].hasSuffix("px)"),
+              parts[1].hasPrefix("saturate("), parts[1].hasSuffix(")"),
+              let radius = Double(parts[0].dropFirst("blur(".count).dropLast(3)),
+              let saturation = Double(parts[1].dropFirst("saturate(".count).dropLast())
+        else { throw Failure(description: "not a blur: \(text)") }
+        return NestEffect.Blur(radius: radius, saturation: saturation)
+    }
+
     /// `-0.01em`.
     static func em(_ text: String) throws -> Double {
         guard text.hasSuffix("em"), let value = Double(text.dropLast(2)) else {

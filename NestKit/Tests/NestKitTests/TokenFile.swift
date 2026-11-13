@@ -36,6 +36,7 @@ struct TokenFile: Decodable {
     let shadow: Group
     let duration: Group
     let easing: Group
+    let effect: Group
     let type: TypeGroup
 
     /// The repository's `design/tokens.json`, found from this file's place in the repo.
