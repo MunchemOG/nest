@@ -13,7 +13,7 @@ struct HomeScreen: View {
                 HStack(alignment: .top, spacing: NestSpace.s6) {
                     HeadlineView(headline: model.headline)
                     Spacer(minLength: 0)
-                    HomeTopBar(now: model.now, mode: model.facts.mode, switchMode: model.switchMode)
+                    HomeTopBar(now: model.now, mode: model.facts.mode ?? "Night", switchMode: model.switchMode)
                 }
             }
             .overlay(alignment: .topTrailing) {
@@ -26,13 +26,15 @@ struct HomeScreen: View {
                 }
                 .padding(.top, NestSpace.s9 - NestSpace.s4)
             }
-            .overlay(alignment: .bottom) {
-                HStack(alignment: .bottom, spacing: NestSpace.s6) {
-                    ActivityPanel(model: model)
-                        .frame(width: HomeLayout.column)
-                    Spacer(minLength: 0)
-                    CommandBar(send: model.send)
-                    Spacer(minLength: 0)
+            .overlay(alignment: .bottomLeading) {
+                ActivityPanel(model: model)
+                    .frame(width: HomeLayout.column)
+            }
+            .overlay {
+                GeometryReader { space in
+                    let dock = HomeLayout.dock(inContentWidth: space.size.width)
+                    CommandBar(send: model.send, width: dock.width)
+                        .position(x: dock.centre, y: space.size.height - NestSpace.s7 / 2 - NestSpace.s2)
                 }
             }
             .accessibilityElement(children: .contain)

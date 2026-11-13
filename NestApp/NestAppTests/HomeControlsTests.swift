@@ -80,6 +80,28 @@ struct HomeControlsTests {
         #expect(DemoReplayStart.split(events, at: nil, in: Self.chicago).past.isEmpty)
     }
 
+    @Test func theCommandBarCentresOnTheWindowLikeThePrototype() {
+        let wide = HomeLayout.dock(inContentWidth: 1512 - HomeLayout.leadingInset - HomeLayout.trailingInset)
+        #expect(wide.width == HomeLayout.dockWidth)
+        #expect(wide.centre + HomeLayout.leadingInset == 1512 / 2 + HomeLayout.dockShift)
+    }
+
+    @Test func theCommandBarNarrowsRatherThanReachTheActivityPanel() {
+        let narrow = HomeLayout.dock(inContentWidth: 1280 - HomeLayout.leadingInset - HomeLayout.trailingInset)
+        #expect(narrow.width < HomeLayout.dockWidth)
+        #expect(narrow.centre - narrow.width / 2 >= HomeLayout.column + NestSpace.s4)
+    }
+
+    @Test func yourEventsAreTimedByTheReplayClock() throws {
+        let model = HomeModel()
+        let events = try DemoDay.events()
+        events.prefix(3).forEach(model.receive)
+        let clock = try #require(events.prefix(3).last).ts.addingTimeInterval(60)
+        model.advanceClock(to: clock)
+        model.switchMode(to: "Focus")
+        #expect(model.events.last?.ts == clock)
+    }
+
     @Test func theStudioGetsThePrototypesStatuses() throws {
         let model = HomeModel()
         let events = try DemoDay.events()

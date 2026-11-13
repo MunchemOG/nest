@@ -4,6 +4,7 @@ import SwiftUI
 /// The pill at the bottom of Home: pick a bird (or name one), say what to do, send.
 struct CommandBar: View {
     let send: (String, Bird?) -> Void
+    var width: Double = NestSpace.s10 * 5
 
     @State private var draft = ChatDraft()
     @State private var picked: Bird?
@@ -45,7 +46,7 @@ struct CommandBar: View {
         .background { Capsule().fill(Color(NestColor.glassBar)) }
         .overlay { Capsule().strokeBorder(Color(NestColor.line), lineWidth: hairline) }
         .nestShadow(.bar, in: Capsule())
-        .frame(width: NestSpace.s10 * 5)
+        .frame(width: width)
     }
 
     private var prompt: String {

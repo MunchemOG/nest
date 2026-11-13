@@ -64,7 +64,8 @@ final class HomeModel {
             if facts.inFlow, let since = facts.flowSince, let now { return "In flow \(Headline.duration(now.timeIntervalSince(since)))" }
             return "At the desk"
         case .magpie:
-            return "\(events.filter { $0.sender == .bird(.magpie) }.count) notes today"
+            let notes = events.filter { $0.sender == .bird(.magpie) }.count
+            return notes == 1 ? "1 note today" : "\(notes) notes today"
         case .peacock:
             return needsYou.contains { $0.topic == .peacockKitReady } ? "Kit ready" : "Watching"
         }
@@ -109,7 +110,16 @@ final class HomeModel {
 
     /// Puts one of your own events on the timeline. Until the bus exists, it goes straight to Home.
     func publish(_ event: NestEvent) {
-        receive(event)
+        receive(stamped(event))
+    }
+
+    /// Your own event, timed by Home's clock, so it lands in order on a replayed day too.
+    private func stamped(_ event: NestEvent) -> NestEvent {
+        guard let now, event.ts != now else { return event }
+        return NestEvent(
+            id: EventID.make(at: now), ts: now, sender: event.sender, kind: event.kind, topic: event.topic,
+            summary: event.summary, data: event.data, undo: event.undo, causedBy: event.causedBy, attention: event.attention
+        )
     }
 
     /// Answers a card in the needs-you stack: tells its bird, if the answer is for a bird, and puts the card away.

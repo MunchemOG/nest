@@ -394,7 +394,7 @@ function restView() {
   const a = camera.aspect, portrait = a < 0.9;
   const half = portrait ? 2.75 : 7.4;
   const d = Math.max(9, half / (Math.tan(THREE.MathUtils.degToRad(15)) * a) + 1.0);
-  cam.tPos.set(portrait ? 0 : 1.1, portrait ? d * 0.62 + 0.8 : 2.5, d + 1.0); cam.tLook.set(portrait ? 0 : 1.1, portrait ? -0.2 : 0.75, -1.0);
+  cam.tPos.set(0, portrait ? d * 0.62 + 0.8 : 2.5, d + 1.0); cam.tLook.set(0, portrait ? -0.2 : 0.75, -1.0);
 }
 function focusView(i) {
   const f = flock[i], a = camera.aspect, wide = a > 1.1;
@@ -520,6 +520,11 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 addEventListener("resize", () => { layout(true); renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); finish.uniforms.uRes.value.set(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); layout(); });
+// Nest: centre the flock on the command bar's axis (the window's centre, 64 pt right of it past the rail)
+const DOCK_SHIFT = 64;
+function centreOnDock() { camera.setViewOffset(innerWidth, innerHeight, -DOCK_SHIFT, 0, innerWidth, innerHeight); }
+centreOnDock();
+addEventListener("resize", centreOnDock);
 document.addEventListener("visibilitychange", () => { last = performance.now(); });
 requestAnimationFrame(frame);
 </script>
