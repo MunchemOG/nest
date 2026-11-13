@@ -7,6 +7,11 @@ struct AppFrame: View {
     @State private var screen = NestScreen.home
     @State private var home = HomeModel()
 
+    /// Every bird's status right now, for the scene.
+    private var statuses: [Bird: BirdStatus] {
+        Dictionary(uniqueKeysWithValues: Bird.allCases.map { ($0, home.flock.status(of: $0)) })
+    }
+
     /// How fast the demo day replays until the birds exist: 60 plays a minute each second.
     private var replaySpeed: Double {
         let speed = UserDefaults.standard.double(forKey: "NestReplaySpeed")
@@ -16,6 +21,12 @@ struct AppFrame: View {
     var body: some View {
         ZStack(alignment: .leading) {
             Color(NestColor.sceneVoid).ignoresSafeArea()
+            if screen == .home {
+                FlockScene(statuses: statuses)
+                    .ignoresSafeArea()
+                    .accessibilityHidden(true)
+                    .transition(.opacity)
+            }
             Group {
                 if screen == .home {
                     HomeScreen(model: home)
