@@ -39,7 +39,10 @@ final class FlockStage {
         self.order = order
         for (index, bird) in order.enumerated() {
             guard let slot = slots[bird] else { continue }
-            let place = Transform(translation: FlockFormation.slot(index))
+            let position = FlockFormation.slot(index)
+            let camera = FlockSceneStyle.cameraPosition * Self.unit
+            let turn = atan2(camera.x - position.x, camera.z - position.z) * FlockSceneStyle.turnTowardCamera
+            let place = Transform(rotation: simd_quatf(angle: turn, axis: SIMD3(0, 1, 0)), translation: position)
             if animated {
                 slot.move(to: place, relativeTo: root, duration: NestMotion.slow.seconds, timingFunction: .easeInOut)
             } else {

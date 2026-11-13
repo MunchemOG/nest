@@ -8,6 +8,8 @@ enum FlockSceneStyle {
     /// Where the camera sits and looks, in tile units.
     static let cameraPosition = SIMD3<Float>(0.4, 3.6, 17.5)
     static let cameraTarget = SIMD3<Float>(0.4, 0.2, -1.5)
+    /// How much each tile turns to face the camera: 0 faces straight ahead, 1 faces the camera fully.
+    static let turnTowardCamera: Float = 0.6
     /// How far back the lit wall stands, and how wide and tall it is, in tile units.
     static let wallDistance: Float = 24
     static let wallSize = SIMD2<Float>(150, 40)

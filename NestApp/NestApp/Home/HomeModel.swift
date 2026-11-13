@@ -17,8 +17,20 @@ final class HomeModel {
     private var ledger = UndoLedger(events: [])
     private var dismissed: Set<String> = []
 
-    /// The newest event's time: "now" while the demo day replays.
-    var now: Date? { events.last?.ts }
+    private var clock: Date?
+
+    /// The time Home shows and measures from: the replay's clock, or the newest event's time if that is later.
+    var now: Date? {
+        switch (clock, events.last?.ts) {
+        case let (clock?, latest?): max(clock, latest)
+        case let (clock, latest): clock ?? latest
+        }
+    }
+
+    /// Moves Home's clock on, for a replay whose time runs faster than the wall clock.
+    func advanceClock(to time: Date) {
+        clock = time
+    }
 
     /// The newest events, newest first.
     var feed: [NestEvent] { Array(events.suffix(Self.feedLength).reversed()) }
@@ -33,7 +45,29 @@ final class HomeModel {
     }
 
     /// The statement at the top of Home.
-    var headline: Headline { Headline(facts: facts, waiting: needsYou.count) }
+    var headline: Headline { Headline(facts: facts, waiting: needsYou.count, now: now) }
+
+    /// The short line under a bird's tile in the scene, from what the app knows about it.
+    func tagLine(for bird: Bird) -> String {
+        let status = flock.status(of: bird)
+        if status == .paused { return facts.mode == "Focus" ? "Paused for Focus" : "Paused" }
+        switch bird {
+        case .wren:
+            if let until = facts.focusUntil { return "Focus until \(until)" }
+            if let mode = facts.mode { return "\(mode) mode" }
+        case .owl:
+            if facts.inFlow, let since = facts.flowSince, let now { return "In flow \(Headline.duration(now.timeIntervalSince(since)))" }
+            if facts.presence == "away" { return "You're away" }
+        case .swift:
+            if let task = facts.building { return "Building \(task)" }
+        case .magpie:
+            let notes = events.filter { $0.sender == .bird(.magpie) && $0.kind == .note }.count
+            if notes > 0 { return notes == 1 ? "1 note today" : "\(notes) notes today" }
+        case .crow, .peacock:
+            break
+        }
+        return StatusPillKind.bird(bird, status).word
+    }
 
     /// Applies one event.
     func receive(_ event: NestEvent) {

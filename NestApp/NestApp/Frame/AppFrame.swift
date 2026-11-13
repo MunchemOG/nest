@@ -26,7 +26,7 @@ struct AppFrame: View {
                 FlockScene(statuses: statuses, mode: home.facts.mode, tags: tags)
                     .ignoresSafeArea()
                     .accessibilityHidden(true)
-                    .overlay { FlockTags(tags: tags, statuses: statuses) }
+                    .overlay { FlockTags(tags: tags, statuses: statuses, line: home.tagLine) }
                     .transition(.opacity)
             }
             Group {
@@ -49,9 +49,21 @@ struct AppFrame: View {
         .focusedSceneValue(\.nestScreen, $screen)
         .task {
             guard let events = try? DemoDay.events() else { return }
-            let (past, future) = DemoReplayStart.split(events, at: UserDefaults.standard.string(forKey: "NestReplayStart"))
+            let startTime = UserDefaults.standard.string(forKey: "NestReplayStart")
+            let (past, future) = DemoReplayStart.split(events, at: startTime)
             past.forEach(home.receive)
-            await home.listen(to: ReplaySource(events: future, clock: ContinuousClock(), speed: replaySpeed))
+            let speed = replaySpeed
+            if let start = DemoReplayStart.start(events, at: startTime) {
+                let began = Date()
+                home.advanceClock(to: start)
+                Task {
+                    while !Task.isCancelled {
+                        try? await Task.sleep(for: .seconds(1))
+                        home.advanceClock(to: start.addingTimeInterval(Date().timeIntervalSince(began) * speed))
+                    }
+                }
+            }
+            await home.listen(to: ReplaySource(events: future, clock: ContinuousClock(), speed: speed))
         }
         .frame(minWidth: NestSpace.s10 * 10, minHeight: NestSpace.s10 * 6 + NestSpace.s6)
     }

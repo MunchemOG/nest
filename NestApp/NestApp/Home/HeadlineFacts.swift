@@ -9,6 +9,8 @@ struct HeadlineFacts: Hashable, Sendable {
     private(set) var focusUntil: String?
     /// Whether you are in flow.
     private(set) var inFlow = false
+    /// When the current flow began.
+    private(set) var flowSince: Date?
     /// Where you are: `here`, `away`, `stranger` or `guest`.
     private(set) var presence: String?
     /// The Mac's mode, such as `Morning`, `Focus` or `Night`.
@@ -39,6 +41,7 @@ struct HeadlineFacts: Hashable, Sendable {
             focusUntil = mode == "Focus" ? settings?["until"]?.string : nil
         case .owlFlowChanged:
             inFlow = event.data["to"]?.bool ?? false
+            flowSince = inFlow ? event.ts : nil
         case .owlPresenceChanged:
             presence = event.data["to"]?.string
         default:

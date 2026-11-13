@@ -78,7 +78,7 @@ struct HomeModelTests {
         }
         #expect(try headline(after: "Swift started a night run on three tasks").main == "Swift is building N1-13.")
         #expect(try headline(after: "Swift finished the night run: two merged, one held").main == "All six are idle.")
-        #expect(try headline(after: "Owl saw Mithun settle into flow").main == "You're in flow.")
+        #expect(try headline(after: "Owl saw Mithun settle into flow").main == "You've been in flow for 0 min.")
         #expect(try headline(after: "Owl saw Mithun leave for lunch").main == "You're away.")
         #expect(try headline(after: "Wren switched to Focus mode until 15:30").main == "Wren is holding focus until 15:30.")
         let night = try headline(after: "Swift started a night run on N1-14 and N1-15")
@@ -93,6 +93,19 @@ struct HomeModelTests {
             .environment(\.timeZone, TimeZone(identifier: "America/Chicago")!)
             .frame(width: NestSpace.s10 * 9, height: NestSpace.s10 * 6)
         try Snapshot.expect(home, named: "home-demo-day", rendering: .window)
+    }
+
+    @Test func tagLinesSayWhatEachBirdIsUpTo() throws {
+        let model = HomeModel()
+        let events = try DemoDay.events()
+        let chicago = TimeZone(identifier: "America/Chicago")!
+        let (past, _) = DemoReplayStart.split(events, at: "15:16", in: chicago)
+        past.forEach(model.receive)
+        model.advanceClock(to: try #require(DemoReplayStart.start(events, at: "15:16", in: chicago)))
+        #expect(model.tagLine(for: .wren) == "Focus until 15:30")
+        #expect(model.tagLine(for: .crow) == "Paused for Focus")
+        #expect(model.tagLine(for: .owl) == "In flow 1 h 35 min")
+        #expect(model.headline.sub.hasPrefix("You've been in flow for 1 h 35 min."))
     }
 
     @Test func theHeadlineCountsWhatNeedsYou() {

@@ -5,6 +5,7 @@ import SwiftUI
 struct FlockTag: View {
     let bird: Bird
     let status: BirdStatus
+    let line: String
 
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @Environment(\.reduceMotionOverride) private var reduceMotionOverride
@@ -23,7 +24,8 @@ struct FlockTag: View {
                     breathes: kind.breathes(reduceMotion: reduceMotionOverride ?? systemReduceMotion),
                     diameter: NestSpace.s1 + NestSpace.s1 / 2
                 )
-                Text(kind.word)
+                Text(line)
+                    .monospacedDigit()
                     .nestFont(.caption)
                     .foregroundStyle(Color(status == .paused ? NestColor.statusWarning : status == .active ? NestColor.textPrimary : NestColor.textMuted))
             }
