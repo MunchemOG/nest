@@ -2,7 +2,7 @@
 #   light  = Sonnet; if it comes back held, retried once on the heavy model
 #   heavy  = Fable until the fable-until date, then Opus
 #   manual = the run stops here and waits for Mithun
-fable-until 2026-11-20
+fable-until 2026-11-14
 
 S2-01 heavy
 S2-04 heavy
