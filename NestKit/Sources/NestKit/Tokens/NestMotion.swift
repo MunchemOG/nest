@@ -30,6 +30,8 @@ public enum NestMotion {
     public static let slow = Duration.milliseconds(420)
     /// Ambient only: an active bird's glow breathing.
     public static let breathe = Duration.milliseconds(2400)
+    /// First-load choreography only; never a response to a click.
+    public static let reveal = Duration.milliseconds(900)
 
     /// The default: starts fast, lands softly.
     public static let easeOut = Curve(x1: 0.22, y1: 1, x2: 0.36, y2: 1)
@@ -45,6 +47,7 @@ public enum NestMotion {
         "duration-base": base,
         "duration-slow": slow,
         "duration-breathe": breathe,
+        "duration-reveal": reveal,
     ]
 
     /// Every easing token, by its name in `tokens.json`.

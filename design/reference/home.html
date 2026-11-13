@@ -1,0 +1,1173 @@
+<title>Nest Flock</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=Inter:wght@400;500&display=swap">
+<style>
+/* Layout: the six birds stand in a dark studio as physical objects, like a car on its screen.
+   Overview: one big sentence top-left, the birds centre stage, one command bar at the bottom.
+   Click a bird: the camera glides to it and its controls appear beside it in large, quiet type. */
+:root {
+  color-scheme: dark;
+  --bg: #0e0e10;
+  --fg: #f2f1ee;
+  --fg-2: rgba(242, 241, 238, 0.62);
+  --fg-3: rgba(242, 241, 238, 0.5);
+  --line: rgba(242, 241, 238, 0.12);
+  --raise: rgba(28, 28, 31, 0.86);
+  --clay: #cb6d4d;
+  --warn: #e7b04b;
+  --display: "Inter Tight", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --text: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--fg); font-family: var(--text); font-size: 14px; -webkit-font-smoothing: antialiased; overflow: hidden; }
+button, input { font: inherit; color: inherit; }
+button { background: none; border: 0; padding: 0; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--clay); outline-offset: 3px; border-radius: 6px; }
+.num { font-variant-numeric: tabular-nums; }
+::selection { background: rgba(203, 109, 77, 0.38); color: var(--fg); }
+input { caret-color: var(--clay); }
+
+#stage { position: fixed; inset: 0; }
+#stage canvas { display: block; width: 100%; height: 100%; }
+.ui { position: fixed; inset: 0; pointer-events: none; padding-top: calc(env(safe-area-inset-top, 0px) + 28px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 28px); padding-left: max(40px, env(safe-area-inset-left, 0px)); padding-right: max(40px, env(safe-area-inset-right, 0px)); }
+.ui > * { pointer-events: auto; }
+
+/* top */
+.top { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 28px); left: 112px; right: max(40px, env(safe-area-inset-right, 0px)); display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; pointer-events: none; }
+.top > * { pointer-events: auto; }
+.brief { max-width: min(760px, 52vw); display: grid; gap: 16px; transition: opacity 500ms var(--ease), transform 600ms var(--ease); }
+.brief.away { opacity: 0; transform: translateY(-8px); pointer-events: none; }
+/* headline: one statement set large, one quieter line beneath it */
+.headline { margin: 0; font-family: var(--display); font-weight: 500; font-size: clamp(34px, 3.7vw, 60px); line-height: 1.02; letter-spacing: -0.038em; text-wrap: balance; max-width: 13.5em; }
+.headline .bn { color: color-mix(in srgb, var(--c) 62%, #ffffff); }
+.headline .w { display: inline-block; }
+.headline.anim .w { animation: wordin 900ms var(--ease) both; animation-delay: calc(var(--i) * 45ms); }
+@keyframes wordin { from { opacity: 0; filter: blur(10px); transform: translateY(0.22em); } }
+.sub { margin: 0; font-size: clamp(16px, 1.3vw, 19px); line-height: 1.45; letter-spacing: -0.008em; color: var(--fg-2); max-width: 32em; text-wrap: pretty; transition: opacity 500ms var(--ease); }
+.sub .att { color: #e4a58c; font: inherit; font-weight: 500; display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; transition: color 200ms ease; }
+.sub .att:hover { color: #f0bfaa; }
+.sub .att svg { width: 12px; height: 12px; transform: translateY(1px); transition: transform 300ms var(--ease); }
+.sub .att:hover svg { transform: translate(3px, 1px); }
+.meta { display: flex; align-items: center; gap: 20px; }
+.when { font-size: 13px; color: var(--fg-3); white-space: nowrap; }
+.when b { font-weight: 500; color: var(--fg-2); margin-left: 6px; }
+.pill { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); font-size: 13px; font-weight: 500; transition: background 200ms ease, border-color 200ms ease; white-space: nowrap; }
+.pill:hover { background: rgba(242, 241, 238, 0.06); border-color: rgba(242, 241, 238, 0.22); }
+.pill .n { display: inline-grid; place-items: center; min-width: 20px; height: 20px; border-radius: 999px; background: var(--clay); color: #0c0c0d; font-size: 12px; font-weight: 600; padding: 0 6px; }
+
+/* bird labels (positioned from 3D) */
+.tag { position: absolute; left: 0; top: 0; text-align: center; pointer-events: auto; cursor: pointer; transition: opacity 500ms var(--ease); white-space: nowrap; display: grid; justify-items: center; gap: 6px; animation: fadein 900ms var(--ease) both; }
+.tag { text-shadow: 0 1px 14px rgba(0, 0, 0, 0.75), 0 0 2px rgba(0, 0, 0, 0.5); }
+.tag b { font-family: var(--display); font-weight: 500; font-size: 15px; letter-spacing: -0.01em; color: var(--fg); transition: color 250ms ease; }
+.tag .s { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--fg-3); transition: color 300ms ease; }
+.tag .d { font-variant-numeric: tabular-nums; }
+.tag .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--fg-3); flex: none; transition: background 300ms ease; }
+.tag.working .dot { background: var(--c); animation: pulse 1.8s ease-in-out infinite; }
+.tag.live .s { color: var(--fg); }
+.tag.paused .s { color: var(--warn); }
+.tag.paused .dot { background: var(--warn); }
+.tag:hover b { color: #fff; }
+.tags.dim .tag { opacity: 0; pointer-events: none; }
+@keyframes pulse { 50% { opacity: 0.3; } }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); filter: blur(10px); } }
+@keyframes fadein { from { opacity: 0; filter: blur(6px); } }
+.brief { animation: rise 1200ms var(--ease) 350ms both; }
+.meta, .dock .cmd, .suggest, .keys { animation: fadein 1000ms var(--ease) 1500ms both; }
+
+/* focus panel */
+.focus { position: absolute; left: 112px; top: 50%; transform: translateY(-46%); width: min(430px, 36vw); display: grid; gap: 28px; transition: opacity 500ms var(--ease), transform 700ms var(--ease); }
+.focus.away { opacity: 0; transform: translate(-16px, -46%); filter: blur(6px); pointer-events: none; }
+.focus { filter: blur(0); }
+.f-head { display: grid; gap: 10px; }
+.back { justify-self: start; font-size: 13px; color: var(--fg-3); display: inline-flex; gap: 8px; align-items: center; }
+.back:hover { color: var(--fg); }
+.f-name { margin: 0; font-family: var(--display); font-weight: 600; font-size: clamp(56px, 7vw, 104px); line-height: 0.92; letter-spacing: -0.045em; }
+.f-role { font-size: 14px; color: var(--fg-3); }
+.f-doing { margin: 0; font-family: var(--display); font-size: clamp(19px, 1.7vw, 24px); line-height: 1.3; letter-spacing: -0.015em; text-wrap: balance; }
+.f-prog { display: grid; gap: 10px; }
+.f-pct { font-family: var(--display); font-weight: 500; font-size: 64px; line-height: 0.9; letter-spacing: -0.04em; }
+.f-pct small { font-size: 26px; color: var(--fg-3); margin-left: 2px; }
+.f-track { height: 2px; background: var(--line); position: relative; overflow: hidden; }
+.f-track i { position: absolute; inset: 0 auto 0 0; transition: width 300ms linear; }
+.f-step { font-size: 13px; color: var(--fg-2); }
+.f-recent { display: grid; }
+.f-recent .r { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 12px; align-items: baseline; padding: 10px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+.f-recent .r:last-child { border-bottom: 1px solid var(--line); }
+.f-recent .t { color: var(--fg-3); font-size: 12px; }
+.f-recent .x { min-width: 0; color: var(--fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.f-recent .r.undone .x { text-decoration: line-through; color: var(--fg-3); }
+.f-recent button, .link { color: var(--fg); font-size: 13px; font-weight: 500; opacity: 0.75; }
+.f-recent button:hover, .link:hover { opacity: 1; }
+.f-acts { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn { height: 40px; padding: 0 18px; border-radius: 999px; font-size: 14px; font-weight: 500; border: 1px solid var(--line); transition: background 200ms ease, border-color 200ms ease; }
+.btn:hover { background: rgba(242, 241, 238, 0.06); border-color: rgba(242, 241, 238, 0.24); }
+.btn.solid { background: var(--fg); color: #0c0c0d; border-color: var(--fg); }
+.btn.solid:hover { background: #ffffff; }
+
+/* command bar + reply */
+.dock { position: absolute; left: calc(50% + 66px); bottom: calc(env(safe-area-inset-bottom, 0px) + 32px); transform: translateX(-50%); width: min(600px, calc(100% - 32px)); display: grid; gap: 12px; justify-items: center; }
+.reply { min-height: 24px; font-size: 15px; text-align: center; color: var(--fg-2); transition: opacity 600ms var(--ease), transform 600ms var(--ease); text-wrap: balance; }
+.reply b { font-weight: 500; margin-right: 8px; }
+.reply svg { width: 18px; height: 18px; vertical-align: -4px; margin-right: 8px; }
+.typing { display: inline-flex; gap: 4px; vertical-align: 2px; }
+.typing i { width: 5px; height: 5px; border-radius: 50%; background: var(--fg-2); animation: blink 1.1s ease-in-out infinite; }
+.typing i:nth-child(2) { animation-delay: 0.15s; } .typing i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+.to { display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 11px; margin-left: -2px; border-radius: 999px; flex: none; background: color-mix(in srgb, var(--c, #f2f1ee) 16%, transparent); color: color-mix(in srgb, var(--c, #f2f1ee) 60%, white); font-size: 13.5px; font-weight: 500; white-space: nowrap; animation: fadein 300ms var(--ease); }
+.to svg { display: none; }
+.keys { position: absolute; left: max(40px, env(safe-area-inset-left, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 50px); font-size: 12px; color: var(--fg-3); display: flex; gap: 18px; }
+.keys kbd { font-family: var(--text); font-size: 11px; color: var(--fg-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; margin-right: 6px; }
+.f-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; font-size: 13.5px; }
+.f-steps li { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 10px; color: var(--fg-3); transition: color 300ms ease; }
+.f-steps li.done { color: var(--fg-2); } .f-steps li.on { color: var(--fg); }
+.f-steps .m { text-align: center; }
+.f-steps .c { font-variant-numeric: tabular-nums; color: var(--fg-2); }
+.f-eta { font-size: 13px; color: var(--fg-3); }
+.f-pct-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.reply.gone { opacity: 0; transform: translateY(6px); }
+/* command bar: a smoked-glass capsule; the six birds sit in it as a row of small jewels */
+form.cmd { width: 100%; display: flex; align-items: center; gap: 12px; height: 58px; padding: 0 9px 0 12px; border-radius: 999px; background: rgba(30, 30, 35, 0.6); border: 1px solid rgba(242, 241, 238, 0.1); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), inset 0 -1px 0 rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.35), 0 28px 60px -24px rgba(0, 0, 0, 0.85); -webkit-backdrop-filter: blur(28px) saturate(150%); backdrop-filter: blur(28px) saturate(150%); transition: border-color 300ms var(--ease), box-shadow 400ms var(--ease), transform 500ms var(--ease); }
+form.cmd:focus-within { border-color: rgba(242, 241, 238, 0.2); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.35), 0 34px 70px -24px rgba(0, 0, 0, 0.9); transform: translateY(-2px); }
+.who { display: flex; gap: 1px; padding-right: 10px; border-right: 1px solid rgba(242, 241, 238, 0.09); flex: none; }
+.who button { width: 30px; height: 30px; border-radius: 999px; display: grid; place-items: center; opacity: 0.8; transition: opacity 250ms var(--ease), transform 400ms var(--ease), background 250ms var(--ease); }
+.who button svg { width: 22px; height: 22px; border-radius: 6px; box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset; }
+.who button:hover { opacity: 1; transform: translateY(-2px); }
+.who.picked button { opacity: 0.25; }
+.who.picked button.on { opacity: 1; background: rgba(242, 241, 238, 0.09); }
+.field { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; height: 100%; }
+.field input { flex: 1; min-width: 0; height: 100%; background: none; border: 0; outline: none; font-size: 15.5px; letter-spacing: -0.005em; }
+.ph { position: absolute; left: 0; top: 50%; transform: translateY(-50%); font-size: 15.5px; letter-spacing: -0.005em; color: var(--fg-2); pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; transition: opacity 260ms var(--ease), transform 420ms var(--ease), filter 260ms var(--ease); }
+.ph.out { opacity: 0; transform: translateY(calc(-50% - 8px)); filter: blur(4px); }
+.ph.pre { opacity: 0; transform: translateY(calc(-50% + 8px)); filter: blur(4px); transition: none; }
+.field.typed .ph { opacity: 0; transition-duration: 80ms; }
+.slash { font: 500 11px var(--text); color: var(--fg-3); border: 1px solid rgba(242, 241, 238, 0.12); border-radius: 6px; padding: 2px 7px; flex: none; transition: opacity 250ms var(--ease); }
+form.cmd:focus-within .slash, form.cmd.has .slash { opacity: 0; }
+.send { width: 40px; height: 40px; border-radius: 999px; background: rgba(242, 241, 238, 0.08); color: var(--fg-3); display: grid; place-items: center; flex: none; transition: background 300ms var(--ease), color 300ms var(--ease), transform 300ms var(--ease); }
+form.cmd.has .send { background: var(--fg); color: #0c0c0d; }
+.send:active { transform: scale(0.93); }
+.send svg { width: 16px; height: 16px; }
+.suggest { display: flex; gap: 4px; flex-wrap: nowrap; justify-content: center; transition: opacity 400ms ease; }
+.suggest button { font-size: 12.5px; color: var(--fg-3); padding: 4px 10px; white-space: nowrap; border-radius: 999px; border: 1px solid transparent; }
+.suggest button:hover { color: var(--fg); border-color: var(--line); }
+
+/* glass: one material for every panel — smoked, blurred, with a lit top edge */
+.glass { background: rgba(22, 22, 27, 0.56); border: 1px solid rgba(242, 241, 238, 0.08); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.3), 0 24px 48px -20px rgba(0, 0, 0, 0.75); -webkit-backdrop-filter: blur(26px) saturate(160%); backdrop-filter: blur(26px) saturate(160%); }
+.ico { width: 26px; height: 26px; border-radius: 8px; flex: none; display: block; box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 4px 10px -4px rgba(0, 0, 0, 0.6); }
+.eyeless { font-size: 12px; font-weight: 500; color: var(--fg-3); letter-spacing: 0.01em; }
+
+/* rail */
+.rail { position: absolute; left: 24px; top: 50%; transform: translateY(-50%); display: grid; gap: 6px; padding: 10px; border-radius: 20px; animation: fadein 900ms var(--ease) 1300ms both; }
+.rail .mark { width: 40px; height: 40px; border-radius: 12px; margin-bottom: 10px; }
+.rail button { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: var(--fg-3); transition: background 200ms ease, color 200ms ease; position: relative; }
+.rail button svg { width: 19px; height: 19px; }
+.rail button:hover { color: var(--fg); background: rgba(242, 241, 238, 0.06); }
+.rail button.on { color: var(--fg); background: rgba(242, 241, 238, 0.1); }
+.rail button.on::before { content: ""; position: absolute; left: -10px; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: var(--clay); }
+.rail .sep { height: 1px; background: rgba(242, 241, 238, 0.08); margin: 6px 4px; }
+
+/* mode switch */
+.modes { position: relative; display: flex; padding: 4px; border-radius: 999px; }
+.modes button { white-space: nowrap; position: relative; z-index: 1; height: 30px; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 500; color: var(--fg-3); transition: color 250ms ease; display: inline-flex; align-items: center; gap: 7px; }
+.modes button svg { width: 14px; height: 14px; }
+.modes button.on { color: #0c0c0d; }
+.modes .knob { position: absolute; top: 4px; bottom: 4px; left: 0; border-radius: 999px; background: var(--fg); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35); }
+.modes.ready .knob { transition: transform 500ms var(--ease), width 500ms var(--ease); }
+
+/* right column */
+.side { position: absolute; right: max(32px, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 88px); width: 340px; display: grid; gap: 12px; transition: opacity 500ms var(--ease), transform 600ms var(--ease); animation: rise 1100ms var(--ease) 1200ms both; }
+.widget { border-radius: 20px; padding: 16px 18px; display: flex; align-items: center; gap: 16px; }
+.ring { width: 56px; height: 56px; flex: none; position: relative; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .t { position: absolute; inset: 0; display: grid; place-items: center; font: 600 13px var(--display); letter-spacing: -0.01em; }
+.widget h3 { margin: 0; font: 500 15px var(--display); letter-spacing: -0.01em; }
+.widget p { margin: 3px 0 0; font-size: 12.5px; color: var(--fg-2); }
+.needs { border-radius: 20px; padding: 8px; display: grid; gap: 2px; }
+.needs header { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px 6px; }
+.needs header b { font: 500 13px var(--display); letter-spacing: -0.005em; }
+.needs header .n { display: inline-grid; place-items: center; min-width: 20px; height: 20px; border-radius: 999px; background: var(--clay); color: #0c0c0d; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+.need { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 12px; padding: 12px 10px; border-radius: 14px; transition: background 200ms ease; animation: fadein 500ms var(--ease) both; }
+.need:hover { background: rgba(242, 241, 238, 0.04); }
+.need p { margin: 0; font-size: 13.5px; line-height: 1.4; }
+.need small { display: block; margin-top: 3px; font-size: 12px; color: var(--fg-3); }
+.need .a { display: flex; gap: 6px; margin-top: 10px; }
+.need .a button { height: 28px; padding: 0 12px; border-radius: 999px; font-size: 12.5px; font-weight: 500; border: 1px solid rgba(242, 241, 238, 0.12); transition: background 200ms ease, border-color 200ms ease; }
+.need .a button:first-child { background: var(--fg); color: #0c0c0d; border-color: var(--fg); }
+.need .a button:hover { border-color: rgba(242, 241, 238, 0.28); }
+.needs .none { padding: 10px; font-size: 13px; color: var(--fg-3); }
+
+/* activity feed */
+.feed { position: absolute; left: 112px; bottom: calc(env(safe-area-inset-bottom, 0px) + 32px); width: 340px; border-radius: 20px; padding: 8px; transition: opacity 500ms var(--ease); animation: rise 1100ms var(--ease) 1400ms both; }
+.feed header { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px 6px; }
+.feed header b { font: 500 13px var(--display); }
+.feed .live { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--fg-3); }
+.feed .live i { width: 6px; height: 6px; border-radius: 50%; background: #6fcf8e; box-shadow: 0 0 0 3px rgba(111, 207, 142, 0.15); animation: pulse 2s ease-in-out infinite; }
+.ev { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 9px 10px; border-radius: 12px; animation: fadein 500ms var(--ease) both; }
+.ev:hover { background: rgba(242, 241, 238, 0.04); }
+.ev .x { min-width: 0; }
+.ev .x span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 13px; line-height: 1.35; }
+.ev .x small { display: block; margin-top: 2px; font-size: 11.5px; color: var(--fg-3); }
+.ev button { font-size: 12px; font-weight: 500; color: var(--fg-2); padding: 4px 8px; border-radius: 8px; opacity: 0; transition: opacity 200ms ease, background 200ms ease; }
+.ev:hover button { opacity: 1; }
+.ev button:hover { background: rgba(242, 241, 238, 0.08); color: var(--fg); }
+.ui.focused .side, .ui.focused .feed { opacity: 0; pointer-events: none; transform: translateX(8px); }
+
+/* waiting sheet */
+.sheet { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 78px); right: max(40px, env(safe-area-inset-right, 0px)); width: min(400px, calc(100% - 32px)); background: var(--raise); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); border: 1px solid var(--line); border-radius: 18px; padding: 10px 20px; display: grid; transform-origin: top right; animation: sheet 380ms var(--ease); }
+@keyframes sheet { from { opacity: 0; transform: scale(0.97) translateY(-6px); } }
+.sheet .w { display: grid; gap: 10px; padding: 16px 0; border-top: 1px solid var(--line); }
+.sheet .w:first-child { border-top: 0; }
+.sheet .w p { margin: 0; font-size: 15px; line-height: 1.4; }
+.sheet .w small { color: var(--fg-3); font-size: 12.5px; }
+.sheet .w .a { display: flex; gap: 16px; }
+.sheet .empty { color: var(--fg-3); padding: 16px 0; margin: 0; }
+
+.suggest, .keys { display: none !important; }
+.ui.focused .suggest, .ui.focused .keys { opacity: 0; pointer-events: none; }
+
+@media (max-width: 820px) {
+  .ui, .top, .focus { padding: 0; }
+  .top { left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 18px); }
+  .headline { font-size: 30px; }
+  .sub { font-size: 15px; }
+  .when { display: none; }
+  .focus { left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); width: auto; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 150px); transform: none; gap: 16px; }
+  .focus.away { transform: translateY(12px); }
+  .f-name { font-size: 52px; }
+  .f-pct { font-size: 44px; }
+  .f-recent { display: none; }
+  .suggest, .keys, .slash, .rail, .side, .feed { display: none; }
+  .top, .focus { left: 16px; }
+  .dock { left: 50%; }
+  .who button { width: 24px; }
+  .tag .s { display: none; }
+  .f-steps { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brief, .focus, .reply, .tag { transition: opacity 200ms linear; transform: none; }
+  .sheet { animation: none; }
+}
+</style>
+
+<div id="stage"></div>
+<div class="ui">
+  <div class="tags" id="tags"></div>
+
+  <div class="top">
+    <div class="brief" id="brief">
+      <h1 class="headline" id="headline">Wren is holding focus until 15:30.</h1>
+      <p class="sub" id="sub"></p>
+    </div>
+    <div class="meta">
+      <span class="when num" id="when">Tuesday 10 November<b>15:16</b></span>
+      <div class="modes glass" id="modes" role="group" aria-label="Mode"><i class="knob" id="knob"></i></div>
+      <button class="pill" id="waiting-btn" aria-expanded="false" hidden><span class="n num" id="waiting-n">2</span> need you</button>
+    </div>
+  </div>
+
+  <nav class="rail glass" aria-label="Sections">
+    <svg class="mark" viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="24" fill="#CB6D4D"/><path d="M20 64 Q35 32 50 58 Q65 32 80 64" fill="none" stroke="#0C0C0D" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <button class="on" aria-label="Home" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/></svg></button>
+    <button aria-label="Activity" title="Activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg></button>
+    <button aria-label="Memory" title="Memory"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h10.5A2.5 2.5 0 0 1 19 6.5V20H8.5A2.5 2.5 0 0 1 6 17.5z"/><path d="M6 17.5A2.5 2.5 0 0 1 8.5 15H19"/></svg></button>
+    <div class="sep"></div>
+    <button aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></button>
+  </nav>
+
+  <aside class="side" id="side">
+    <div class="widget glass" id="focus-w" hidden>
+      <div class="ring"><svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="24" fill="none" stroke="rgba(242,241,238,0.1)" stroke-width="4"/><circle id="ring-arc" cx="28" cy="28" r="24" fill="none" stroke="#d2ae8a" stroke-width="4" stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="150.8"/></svg><span class="t num" id="ring-t">88%</span></div>
+      <div><h3 id="fw-h">Focus mode</h3><p class="num" id="fw-p">14 min left · Notifications off</p></div>
+    </div>
+    <section class="needs glass" aria-label="Needs you"><header><b>Needs you</b><span class="n num" id="needs-n">2</span></header><div id="needs"></div></section>
+  </aside>
+
+  <section class="feed glass" aria-label="Activity"><header><b>Activity</b><span class="live"><i></i>Live</span></header><div id="feed"></div></section>
+
+  <section class="focus away" id="focus" aria-live="polite">
+    <button class="back" id="back">← All birds</button>
+    <div class="f-head"><h2 class="f-name" id="f-name">Swift</h2><div class="f-role" id="f-role">Builder</div></div>
+    <p class="f-doing" id="f-doing"></p>
+    <div class="f-prog" id="f-prog">
+      <div class="f-pct-row"><div class="f-pct num" id="f-pct">0<small>%</small></div><span class="f-eta num" id="f-eta"></span></div>
+      <div class="f-track"><i id="f-bar"></i></div>
+      <div class="f-step num" id="f-step"></div>
+    </div>
+    <ol class="f-steps" id="f-steps"></ol>
+    <div class="f-recent" id="f-recent"></div>
+    <div class="f-acts">
+      <button class="btn solid" id="f-msg">Message</button>
+      <button class="btn" id="f-undo">Undo last</button>
+      <button class="btn" id="f-pause">Pause</button>
+    </div>
+  </section>
+
+  <div class="sheet" id="sheet" hidden></div>
+  <div class="keys" aria-hidden="true"><span><kbd>/</kbd>Type</span><span><kbd>1</kbd>–<kbd>6</kbd>Go to a bird</span><span><kbd>Esc</kbd>Back</span></div>
+
+  <div class="dock">
+    <div class="reply gone" id="reply"></div>
+    <form class="cmd" id="cmd" autocomplete="off">
+      <div class="who" id="who" role="group" aria-label="Talk to"></div>
+      <span class="to" id="to" hidden></span>
+      <div class="field" id="field"><input id="cmd-in" type="text" spellcheck="false" aria-label="Command"><span class="ph" id="ph" aria-hidden="true">Tell any bird what to do</span></div>
+      <kbd class="slash" aria-hidden="true">/</kbd>
+      <button class="send" type="submit" aria-label="Send"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg></button>
+    </form>
+    <div class="suggest" id="suggest"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/SVGLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/BokehShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/BokehPass.js"></script>
+<script>
+"use strict";
+// ───────────────────────── flock + demo day
+const BIRDS = [
+  { id: "wren", name: "Wren", role: "Keeper of space", color: "#d2ae8a", svg: '<path d="M62 50 A16 16 0 1 1 46 38 L56 38 L74 24" fill="none" stroke-width="8"/><circle cx="44" cy="52" r="3.5" stroke="none"/>' },
+  { id: "swift", name: "Swift", role: "Builder", color: "#6e9bd3", svg: '<path d="M8 64 Q28 36 50 44 Q72 36 92 64" fill="none" stroke-width="7"/><path d="M50 44 L50 58" fill="none" stroke-width="7"/><circle cx="50" cy="34" r="6" stroke="none"/><path d="M50 58 L44 66 M50 58 L56 66" fill="none" stroke-width="7"/><path d="M30 80 L46 80 M54 80 L76 80 M38 90 L62 90" stroke-width="5" fill="none"/>' },
+  { id: "crow", name: "Crow", role: "Inventor", color: "#8e86d6", svg: '<path d="M54 66 A18 18 0 1 1 58 34 L82 46 L60 52" fill="none" stroke-width="8"/><circle cx="46" cy="46" r="3.5" stroke="none"/>' },
+  { id: "owl", name: "Owl", role: "Eyes", color: "#d4a954", svg: '<circle cx="35" cy="56" r="13" fill="none" stroke-width="8"/><circle cx="65" cy="56" r="13" fill="none" stroke-width="8"/><path d="M26 30 L34 40 M74 30 L66 40" fill="none" stroke-width="8"/>' },
+  { id: "magpie", name: "Magpie", role: "Second brain", color: "#d47a93", svg: '<path d="M30 46 A14 14 0 1 1 46 54 L62 62 L86 82" fill="none" stroke-width="7"/><path d="M30 40 L16 38" fill="none" stroke-width="7"/><circle cx="40" cy="38" r="4" stroke="none"/><path d="M48 58 L60 64 L60 84 L54 78 L48 84 Z" stroke-width="5"/>' },
+  { id: "peacock", name: "Peacock", role: "Showcase", color: "#c27bb8", svg: '<path d="M22 66 A28 28 0 0 1 78 66" fill="none" stroke-width="8"/><path d="M36 66 A14 14 0 0 1 64 66" fill="none" stroke-width="8"/><circle cx="50" cy="66" r="5" stroke="none"/>' },
+];
+const BI = Object.fromEntries(BIRDS.map((b, i) => [b.id, i]));
+const B = id => BIRDS[BI[id]];
+const RAW = [{"id":"MS8PWSEB","t":30.0,"bird":"swift","kind":"signal","topic":"swift.run.started","summary":"Swift started a night run on three tasks","att":"none","undo":null,"cause":null,"data":{"tasks":["N1-13","N1-14","N1-15"],"branch":"task/N1-13"}},{"id":"KY35BRFY","t":72.667,"bird":"swift","kind":"action","topic":"swift.task.merged","summary":"Swift merged N1-13 with 17 new tests","att":"none","undo":"git.revert","cause":"MS8PWSEB","data":{"task":"N1-13","commit":"a41c9e2","tests_added":17}},{"id":"5HP9DZK8","t":72.75,"bird":"peacock","kind":"signal","topic":"peacock.win.seen","summary":"Peacock saw N1-13 go green overnight","att":"none","undo":null,"cause":"KY35BRFY","data":{"what":"N1-13 merged with every test passing","trigger":"swift.task.merged"}},{"id":"CFXRAXCW","t":73.033,"bird":"magpie","kind":"note","topic":"magpie.note.written","summary":"Magpie logged the N1-13 merge in today's note","att":"none","undo":"note.restore","cause":"KY35BRFY","data":{"note":"Daily/2026-11-10.md","links":["Projects/Nest.md"]}},{"id":"320X385T","t":125.3,"bird":"swift","kind":"action","topic":"swift.task.merged","summary":"Swift merged N1-14 with 9 new tests","att":"none","undo":"git.revert","cause":"MS8PWSEB","data":{"task":"N1-14","commit":"7be0d31","tests_added":9}},{"id":"BENS4W52","t":167.85,"bird":"swift","kind":"signal","topic":"swift.task.held","summary":"Swift held N1-15: the replay test timed out","att":"none","undo":null,"cause":"MS8PWSEB","data":{"task":"N1-15","guess":"The fake source waits on the real clock","confidence":0.6}},{"id":"CV7DB4ZE","t":181.15,"bird":"swift","kind":"signal","topic":"swift.run.finished","summary":"Swift finished the night run: two merged, one held","att":"none","undo":null,"cause":"MS8PWSEB","data":{"tasks":["N1-13","N1-14","N1-15"],"branch":"main"}},{"id":"Q4PMZVT8","t":181.5,"bird":"swift","kind":"report","topic":"swift.report.ready","summary":"Swift's night report is ready: two merged, one held","att":"calm","undo":null,"cause":"CV7DB4ZE","data":{"status":"amber","headline":"Two merged, one held","points":["N1-13 merged","N1-14 merged","N1-15 held: the replay test timed out"],"usage":{"percent":38}}},{"id":"3K8JPKF5","t":182.167,"bird":"magpie","kind":"note","topic":"magpie.lesson.learned","summary":"Magpie learned that replay tests need a fake clock","att":"none","undo":"note.restore","cause":"BENS4W52","data":{"bird":"swift","lesson":"Replay tests need a fake clock, never the real one","from":"BENS4W52"}},{"id":"10ZRFQ3T","t":458.2,"bird":"owl","kind":"signal","topic":"owl.presence.changed","summary":"Owl saw Mithun sit down","att":"none","undo":null,"cause":null,"data":{"to":"here","was":"away"}},{"id":"A6G8VVA7","t":458.333,"bird":"wren","kind":"action","topic":"wren.mode.changed","summary":"Wren switched to Morning mode","att":"none","undo":"mode.set","cause":"10ZRFQ3T","data":{"to":"Morning","was":"Night","settings":{"appearance":"light","notifications":"on"}}},{"id":"73ZTJE0C","t":458.4,"bird":"wren","kind":"action","topic":"wren.look.changed","summary":"Wren set the Morning look: dunes, light, clay accent","att":"none","undo":"look.set","cause":"A6G8VVA7","data":{"wallpaper":"dunes-dawn.heic","appearance":"light","accent":"clay"}},{"id":"VWTMYCMZ","t":461.083,"bird":"wren","kind":"action","topic":"wren.workspace.restored","summary":"Wren reopened the Robotics workspace: 4 files, 6 tabs","att":"none","undo":"workspace.close","cause":"A6G8VVA7","data":{"project":"Robotics","files":["~/Mithu/Robotics/CAD/swerve-pod-v4.step","~/Mithu/Robotics/Regionals.md","~/Mithu/Robotics/Scouting/match-plan.numbers","~/Mithu/Nest/docs/queue.md"],"tabs":6,"windows":3}},{"id":"BN36DVQ5","t":494.117,"bird":"wren","kind":"action","topic":"wren.file.moved","summary":"Wren moved swerve-pod-v4.step to Robotics / CAD","att":"none","undo":"file.move","cause":null,"data":{"from":"~/Downloads/swerve-pod-v4.step","to":"~/Mithu/Robotics/CAD/swerve-pod-v4.step","rule":"ext+project","confidence":0.94}},{"id":"2878S8SK","t":496.667,"bird":"wren","kind":"action","topic":"wren.file.renamed","summary":"Wren renamed IMG_4471.jpg to pit-wiring-2026-11-10.jpg","att":"none","undo":"file.move","cause":null,"data":{"from":"~/Mithu/Robotics/Photos/IMG_4471.jpg","to":"~/Mithu/Robotics/Photos/pit-wiring-2026-11-10.jpg","rule":"photo+project","confidence":0.81}},{"id":"FRVKZ0C0","t":497.033,"bird":"wren","kind":"signal","topic":"wren.file.skipped","summary":"Wren left tax-return-2025.pdf where it was","att":"none","undo":null,"cause":null,"data":{"path":"~/Downloads/tax-return-2025.pdf","why":"Looks private; Mithun files these himself"}},{"id":"Z18PGN2H","t":500.517,"bird":"wren","kind":"action","topic":"wren.folder.created","summary":"Wren created Robotics / Scouting for the match sheets","att":"none","undo":"folder.remove_if_empty","cause":null,"data":{"path":"~/Mithu/Robotics/Scouting","project":"Robotics"}},{"id":"DMV2Z6SM","t":500.55,"bird":"wren","kind":"action","topic":"wren.file.moved","summary":"Wren moved match-sheet-q12.csv to Robotics / Scouting","att":"none","undo":"file.move","cause":"Z18PGN2H","data":{"from":"~/Downloads/match-sheet-q12.csv","to":"~/Mithu/Robotics/Scouting/match-sheet-q12.csv","rule":"ext+project","confidence":0.9}},{"id":"ZZXD94KP","t":500.567,"bird":"wren","kind":"action","topic":"wren.file.moved","summary":"Wren moved match-sheet-q13.csv to Robotics / Scouting","att":"none","undo":"file.move","cause":"Z18PGN2H","data":{"from":"~/Downloads/match-sheet-q13.csv","to":"~/Mithu/Robotics/Scouting/match-sheet-q13.csv","rule":"ext+project","confidence":0.9}},{"id":"4TZPFAGE","t":501.167,"bird":"magpie","kind":"note","topic":"magpie.note.linked","summary":"Magpie linked the scouting sheets to the Regionals note","att":"none","undo":"note.restore","cause":"ZZXD94KP","data":{"note":"Projects/Robotics/Regionals.md","links":["Robotics/Scouting/match-sheet-q12.csv","Robotics/Scouting/match-sheet-q13.csv"]}},{"id":"9GDQ5FSV","t":542.0,"bird":"owl","kind":"signal","topic":"owl.flow.changed","summary":"Owl saw Mithun settle into flow","att":"none","undo":null,"cause":null,"data":{"to":true}},{"id":"CQ2Y73MZ","t":587.5,"bird":"owl","kind":"signal","topic":"owl.distraction.noticed","summary":"Owl noticed 12 minutes of YouTube during Robotics","att":"none","undo":null,"cause":null,"data":{"minutes":12,"context":"Robotics","due":"CAD freeze on Friday"}},{"id":"1SXW4Y24","t":587.55,"bird":"owl","kind":"action","topic":"owl.nudge.given","summary":"Owl hid Safari after 12 minutes of YouTube","att":"none","undo":"app.unhide","cause":"CQ2Y73MZ","data":{"step":3,"about":"YouTube in Safari"}},{"id":"9WZRZPCJ","t":631.25,"bird":"owl","kind":"signal","topic":"owl.flow.changed","summary":"Owl saw Mithun's flow end","att":"none","undo":null,"cause":null,"data":{"to":false}},{"id":"755QP51Q","t":658.0,"bird":"crow","kind":"signal","topic":"crow.friction.seen","summary":"Crow saw 7 STEP exports renamed by hand this week","att":"none","undo":null,"cause":null,"data":{"pattern":"Renaming STEP exports to <part>-v<n>.step","count":7}},{"id":"NJCPKHKA","t":664.333,"bird":"crow","kind":"pitch","topic":"crow.pitch.made","summary":"Crow pitched a tool that names STEP exports for you","att":"inbox","undo":null,"cause":"755QP51Q","data":{"headline":"Name STEP exports for you","evidence":["7 hand renames this week","The same pattern every time"],"minutes_saved":15,"scope":"other"}},{"id":"JYE3EYP1","t":700.033,"bird":"crow","kind":"signal","topic":"crow.pitch.answered","summary":"Crow heard back on the STEP namer: later","att":"none","undo":null,"cause":"NJCPKHKA","data":{"pitch":"NJCPKHKA","answer":"later"}},{"id":"JZ0W71NF","t":725.733,"bird":"owl","kind":"signal","topic":"owl.presence.changed","summary":"Owl saw Mithun leave for lunch","att":"none","undo":null,"cause":null,"data":{"to":"away","was":"here"}},{"id":"7K6SBACY","t":727.167,"bird":"wren","kind":"action","topic":"wren.file.moved","summary":"Wren moved Screenshot 11.52.png to Screenshots / November","att":"none","undo":"file.move","cause":"JZ0W71NF","data":{"from":"~/Desktop/Screenshot 11.52.png","to":"~/Mithu/Screenshots/November/Screenshot 11.52.png","rule":"screenshot","confidence":0.99}},{"id":"8S397WD1","t":727.183,"bird":"wren","kind":"action","topic":"wren.file.moved","summary":"Wren moved Screenshot 11.58.png to Screenshots / November","att":"none","undo":"file.move","cause":"JZ0W71NF","data":{"from":"~/Desktop/Screenshot 11.58.png","to":"~/Mithu/Screenshots/November/Screenshot 11.58.png","rule":"screenshot","confidence":0.99}},{"id":"CMSMDCE5","t":727.2,"bird":"wren","kind":"action","topic":"wren.file.moved","summary":"Wren moved invoice-0412.pdf to Money / Invoices","att":"none","undo":"file.move","cause":"JZ0W71NF","data":{"from":"~/Downloads/invoice-0412.pdf","to":"~/Mithu/Money/Invoices/invoice-0412.pdf","rule":"invoice","confidence":0.72}},{"id":"HC5THMFS","t":768.05,"bird":"owl","kind":"signal","topic":"owl.presence.changed","summary":"Owl saw Mithun come back","att":"none","undo":null,"cause":null,"data":{"to":"here","was":"away"}},{"id":"JR0QHBYT","t":772.667,"bird":"you","kind":"signal","topic":"you.correction.made","summary":"You moved invoice-0412.pdf back to Downloads","att":"none","undo":null,"cause":"CMSMDCE5","data":{"target":"CMSMDCE5","what_you_did":"Moved it back to ~/Downloads"}},{"id":"C76WWWW6","t":772.917,"bird":"magpie","kind":"note","topic":"magpie.lesson.learned","summary":"Magpie learned that invoices stay in Downloads","att":"none","undo":"note.restore","cause":"JR0QHBYT","data":{"bird":"wren","lesson":"Leave invoices in Downloads; Mithun files them himself","from":"JR0QHBYT"}},{"id":"HHK8SM3F","t":810.0,"bird":"app","kind":"ask","topic":"app.ask.sent","summary":"Nest asked Wren for Focus mode for two hours","att":"none","undo":null,"cause":null,"data":{"to":"wren","text":"Focus mode for two hours"}},{"id":"M8ETWDR2","t":810.067,"bird":"wren","kind":"action","topic":"wren.mode.changed","summary":"Wren switched to Focus mode until 15:30","att":"none","undo":"mode.set","cause":"HHK8SM3F","data":{"to":"Focus","was":"Morning","settings":{"notifications":"off","until":"15:30"}}},{"id":"YFMQFN2G","t":810.167,"bird":"app","kind":"signal","topic":"app.bird.paused","summary":"Nest paused Crow while Focus mode is on","att":"none","undo":null,"cause":"M8ETWDR2","data":{"bird":"crow"}},{"id":"SCSVCK33","t":821.0,"bird":"owl","kind":"signal","topic":"owl.flow.changed","summary":"Owl saw Mithun settle into flow","att":"none","undo":null,"cause":null,"data":{"to":true}},{"id":"9CDA4QY2","t":920.0,"bird":"owl","kind":"signal","topic":"owl.flow.changed","summary":"Owl saw Mithun's flow end","att":"none","undo":null,"cause":null,"data":{"to":false}},{"id":"VHER2G8S","t":930.0,"bird":"wren","kind":"action","topic":"wren.mode.changed","summary":"Wren ended Focus mode and went back to Morning","att":"none","undo":"mode.set","cause":"M8ETWDR2","data":{"to":"Morning","was":"Focus","settings":{"notifications":"on"}}},{"id":"NQZY1J40","t":930.083,"bird":"app","kind":"signal","topic":"app.bird.resumed","summary":"Nest resumed Crow after Focus mode","att":"none","undo":null,"cause":"VHER2G8S","data":{"bird":"crow"}},{"id":"8XQJK6BZ","t":940.0,"bird":"crow","kind":"signal","topic":"crow.friction.seen","summary":"Crow saw you check Swift's results in three apps","att":"none","undo":null,"cause":null,"data":{"pattern":"Report, then Terminal, then GitHub, to see test results","count":5}},{"id":"KBP0RKFZ","t":942.5,"bird":"crow","kind":"pitch","topic":"crow.pitch.made","summary":"Crow pitched test results on Swift's report card","att":"calm","undo":null,"cause":"8XQJK6BZ","data":{"headline":"Test results on the report card","evidence":["5 three-app checks this week","Each took about 2 minutes"],"minutes_saved":10,"scope":"nest"}},{"id":"RSTHC6CS","t":950.0,"bird":"you","kind":"ask","topic":"you.undo.asked","summary":"You asked to undo Swift's N1-14 merge","att":"none","undo":null,"cause":null,"data":{"target":"320X385T"}},{"id":"7YC12YF3","t":950.35,"bird":"swift","kind":"undo","topic":"swift.merge.rolled_back","summary":"Swift rolled back the N1-14 merge","att":"none","undo":"git.revert","cause":"RSTHC6CS","data":{"target":"320X385T","why":"You asked to undo it"}},{"id":"MXXWT9SM","t":965.167,"bird":"crow","kind":"signal","topic":"crow.pitch.answered","summary":"Crow heard back on the report card idea: build","att":"none","undo":null,"cause":"KBP0RKFZ","data":{"pitch":"KBP0RKFZ","answer":"build"}},{"id":"XJNBC0E1","t":980.0,"bird":"peacock","kind":"signal","topic":"peacock.win.seen","summary":"Peacock saw the shell replay a whole day","att":"none","undo":null,"cause":null,"data":{"what":"The Nest shell replayed the demo day","trigger":"screen"}},{"id":"QKNZZGMH","t":1005.0,"bird":"peacock","kind":"report","topic":"peacock.kit.ready","summary":"Peacock made a post kit: the shell replays a day","att":"inbox","undo":null,"cause":"XJNBC0E1","data":{"platform":"x","title":"The Nest shell replays a whole day","path":"~/Mithu/Nest/Post Kits/2026-11-10-shell","best_time":"2026-11-11T09:00:00-06:00"}},{"id":"GV54PW5Z","t":1005.15,"bird":"wren","kind":"action","topic":"wren.file.moved","summary":"Wren filed the shell post kit in Ready to Post","att":"none","undo":"file.move","cause":"QKNZZGMH","data":{"from":"~/Mithu/Nest/Post Kits/2026-11-10-shell","to":"~/Mithu/Ready to Post/2026-11-10-shell","rule":"post-kit","confidence":1.0}},{"id":"FHQ5FQMW","t":1005.333,"bird":"magpie","kind":"note","topic":"magpie.note.linked","summary":"Magpie linked the post kit to the Nest devlog note","att":"none","undo":"note.restore","cause":"QKNZZGMH","data":{"note":"Projects/Nest/Devlog.md","links":["Ready to Post/2026-11-10-shell"]}},{"id":"RR0ENG8Q","t":1080.0,"bird":"magpie","kind":"action","topic":"magpie.memory.forgotten","summary":"Magpie forgot raw screen notes older than a week","att":"none","undo":null,"cause":null,"data":{"what":"Raw screen notes before 2026-11-03","derived":"Kept the weekly summaries made from them"}},{"id":"7JQF6MVE","t":1110.2,"bird":"owl","kind":"signal","topic":"owl.presence.changed","summary":"Owl saw Mithun leave","att":"none","undo":null,"cause":null,"data":{"to":"away","was":"here"}},{"id":"CEYQ2PWE","t":1112.0,"bird":"wren","kind":"action","topic":"wren.file.moved","summary":"Wren moved arm-notes.md to Robotics / Notes","att":"none","undo":"file.move","cause":"7JQF6MVE","data":{"from":"~/Desktop/arm-notes.md","to":"~/Mithu/Robotics/Notes/arm-notes.md","rule":"notes+project","confidence":0.86}},{"id":"GGRY8VGC","t":1185.5,"bird":"owl","kind":"signal","topic":"owl.presence.changed","summary":"Owl saw Mithun come back","att":"none","undo":null,"cause":null,"data":{"to":"here","was":"away"}},{"id":"W8C4BE41","t":1210.0,"bird":"owl","kind":"signal","topic":"owl.presence.changed","summary":"Owl saw a guest join Mithun","att":"none","undo":null,"cause":null,"data":{"to":"guest","was":"here"}},{"id":"YSA14BCB","t":1255.0,"bird":"owl","kind":"signal","topic":"owl.presence.changed","summary":"Owl saw the guest leave","att":"none","undo":null,"cause":null,"data":{"to":"here","was":"guest"}},{"id":"7HM16886","t":1290.0,"bird":"app","kind":"signal","topic":"app.bird.paused","summary":"Nest paused Peacock for the night","att":"none","undo":null,"cause":null,"data":{"bird":"peacock"}},{"id":"2JPK52KR","t":1322.0,"bird":"owl","kind":"signal","topic":"owl.presence.changed","summary":"Owl saw Mithun leave for the night","att":"none","undo":null,"cause":null,"data":{"to":"away","was":"here"}},{"id":"5CWZK6GV","t":1322.133,"bird":"wren","kind":"action","topic":"wren.mode.changed","summary":"Wren switched to Night mode","att":"none","undo":"mode.set","cause":"2JPK52KR","data":{"to":"Night","was":"Morning","settings":{"appearance":"dark","notifications":"off"}}},{"id":"RV6WV2VJ","t":1322.2,"bird":"wren","kind":"action","topic":"wren.look.changed","summary":"Wren set the Night look: harbour, dark, lagoon accent","att":"none","undo":"look.set","cause":"5CWZK6GV","data":{"wallpaper":"harbour-night.heic","appearance":"dark","accent":"lagoon"}},{"id":"66AVE3KW","t":1335.0,"bird":"swift","kind":"signal","topic":"swift.run.started","summary":"Swift started a night run on N1-14 and N1-15","att":"none","undo":null,"cause":"2JPK52KR","data":{"tasks":["N1-14","N1-15"],"branch":"task/N1-14"}},{"id":"CZECCVB0","t":1340.0,"bird":"magpie","kind":"note","topic":"magpie.note.written","summary":"Magpie wrote up today in the daily note","att":"none","undo":"note.restore","cause":null,"data":{"note":"Daily/2026-11-10.md","links":["Projects/Nest.md","Projects/Robotics/Regionals.md"]}}];
+
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, "0");
+const hm = t => { t = Math.max(0, Math.min(1439.99, t)); return `${pad(Math.floor(t / 60))}:${pad(Math.floor(t % 60))}`; };
+const dur = m => { m = Math.max(0, Math.round(m)); return m < 60 ? `${m}\u00a0min` : `${Math.floor(m / 60)}\u00a0h ${m % 60}\u00a0min`; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const cap = s => s.replace(/^./, c => c.toUpperCase());
+const base = p => String(p).split("/").pop();
+const dir = p => { const a = String(p).replace(/^~\/(Mithu\/)?/, "").split("/"); a.pop(); return a.join(" / ") || "Home"; };
+const ease = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const tileSVG = (b, cls = "ico") => `<svg class="${cls}" viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="24" fill="${b.color}"/><g stroke="#0C0C0D" fill="#0C0C0D" stroke-linecap="round" stroke-linejoin="round">${b.svg}</g></svg>`;
+const glyphSVG = b => `<svg viewBox="0 0 100 100" aria-hidden="true"><g stroke="${b.color}" fill="${b.color}" stroke-linecap="round" stroke-linejoin="round">${b.svg}</g></svg>`;
+
+// ───────────────────────── state engine
+const START = 15 * 60 + 16, SPEED = 60;
+const S = { now: START, events: [], byId: {}, undone: new Set(), paused: {}, waiting: [], answered: {}, run: null, runTask: null, runSince: 0, tasks: {}, mode: { label: "Night", until: null, t0: 0, was: null }, presence: "away", presenceSince: 0, flow: false, flowSince: 0, seq: 0, focus: null };
+const queue = RAW.slice().sort((a, b) => a.t - b.t);
+const short = ev => ev.summary.replace(new RegExp("^" + (BI[ev.bird] != null ? B(ev.bird).name : "") + "('s)? "), "");
+
+function apply(ev, live) {
+  S.events.push(ev); S.byId[ev.id] = ev;
+  const d = ev.data || {};
+  switch (ev.topic) {
+    case "wren.mode.changed": S.mode = { label: d.to, until: d.settings && d.settings.until, t0: ev.t, was: d.was }; break;
+    case "owl.presence.changed": S.presence = d.to; S.presenceSince = ev.t; if (d.to === "away") S.flow = false; break;
+    case "owl.flow.changed": S.flow = !!d.to; if (d.to) S.flowSince = ev.t; break;
+    case "app.bird.paused": S.paused[d.bird] = true; break;
+    case "app.bird.resumed": S.paused[d.bird] = false; break;
+    case "swift.run.started": S.run = { tasks: d.tasks.slice(), i: 0 }; S.runSince = ev.t; break;
+    case "swift.task.merged": case "swift.task.held": if (S.run) { S.run.i++; S.runSince = ev.t; } break;
+    case "swift.run.finished": S.run = null; break;
+    case "swift.merge.rolled_back": S.undone.add(d.target); break;
+    case "crow.pitch.answered": S.answered[d.pitch] = d.answer; if (d.answer !== "later") S.waiting = S.waiting.filter(x => x !== d.pitch); break;
+  }
+  if (ev.att === "inbox" || ev.att === "calm") S.waiting.push(ev.id);
+  if (live && BI[ev.bird] != null) { birdEvent(BI[ev.bird], ev); }
+  if (live && ev.bird === "you" && ev.topic === "you.undo.asked") showReply(null, "You asked Swift to undo the N1-14 merge.");
+  ui.dirty = true;
+}
+function statusOf(id) {
+  if (S.paused[id]) return "paused";
+  if (S.tasks[id] || (id === "swift" && S.run)) return "working";
+  if (id === "wren" && S.mode.label === "Focus") return "working";
+  return "idle";
+}
+function progressOf(id) {
+  const task = S.tasks[id];
+  if (task) {
+    const el = task.elapsed(); let acc = 0, si = 0;
+    for (; si < task.steps.length; si++) { if (el < acc + task.steps[si].d) break; acc += task.steps[si].d; }
+    si = Math.min(si, task.steps.length - 1);
+    const st = task.steps[si], within = Math.min(1, (el - acc) / st.d), left = Math.max(0, task.total - el);
+    return { frac: Math.min(1, el / task.total), step: `Step ${si + 1} of ${task.steps.length}`, steps: task.steps, si, within, eta: left < 1.5 ? "Almost done" : `About ${Math.ceil(left)} seconds left` };
+  }
+  if (id === "swift" && S.run) {
+    const f = Math.min(0.96, (S.now - S.runSince) / 48);
+    return { frac: (S.run.i + f) / S.run.tasks.length, step: `${S.run.tasks[S.run.i]} · tests ${Math.floor(f * 212)} of 212`, eta: `Task ${S.run.i + 1} of ${S.run.tasks.length}` };
+  }
+  if (id === "wren" && S.mode.until) {
+    const [h, m] = S.mode.until.split(":").map(Number), end = h * 60 + m;
+    return { frac: Math.max(0, Math.min(1, (S.now - S.mode.t0) / (end - S.mode.t0))), step: `Notifications off · Crow paused`, eta: `${dur(end - S.now)} left` };
+  }
+  return null;
+}
+function doingOf(id) {
+  if (S.paused[id]) return id === "crow" && S.mode.label === "Focus" ? "Paused while Focus mode is on" : id === "peacock" && S.now > 21.5 * 60 ? "Paused for the night" : "Paused by you";
+  const task = S.tasks[id]; if (task) return task.title;
+  switch (id) {
+    case "wren": return S.mode.until ? `Holding Focus mode until ${S.mode.until}` : `${S.mode.label} mode, watching Desktop and Downloads`;
+    case "swift": return S.run ? `Night run, building ${S.run.tasks[S.run.i]}` : S.now < 22.25 * 60 ? "Next run at 22:15" : "Idle";
+    case "crow": return "Watching how you work";
+    case "owl": return S.presence === "away" ? `You've been away since ${hm(S.presenceSince)}` : S.presence === "guest" ? "A guest is with you" : S.flow ? `You've been in flow for ${dur(S.now - S.flowSince)}` : "You're at the desk";
+    case "magpie": { const n = S.events.filter(e => e.bird === "magpie").length; return `${n} notes written today`; }
+    case "peacock": return S.waiting.some(w => S.byId[w] && S.byId[w].topic === "peacock.kit.ready") ? "A post kit is waiting on you" : "Watching for something worth showing";
+  }
+  return "";
+}
+function tagOf(id) {
+  if (S.paused[id]) return id === "crow" && S.mode.label === "Focus" ? "Paused for Focus" : "Paused";
+  const task = S.tasks[id]; if (task) return task.title;
+  switch (id) {
+    case "wren": return S.mode.until ? `Focus until ${S.mode.until}` : `${S.mode.label} mode`;
+    case "swift": return S.run ? `Building ${S.run.tasks[S.run.i]}` : S.now < 22.25 * 60 ? "Next run 22:15" : "Idle";
+    case "crow": return "Watching";
+    case "owl": return S.presence === "away" ? "You're away" : S.presence === "guest" ? "Guest present" : S.flow ? `In flow ${dur(S.now - S.flowSince)}` : "At the desk";
+    case "magpie": return `${S.events.filter(e => e.bird === "magpie").length} notes today`;
+    case "peacock": return S.waiting.some(w => S.byId[w] && S.byId[w].topic === "peacock.kit.ready") ? "Kit ready" : "Watching";
+  }
+  return "";
+}
+function headline() {
+  const parts = [];
+  const working = BIRDS.filter(b => S.tasks[b.id]);
+  working.forEach(b => parts.push(`${b.name} is ${S.tasks[b.id].verb}.`));
+  if (S.run && !S.tasks.swift) parts.push(`Swift is building ${S.run.tasks[S.run.i]}.`);
+  if (S.mode.until && parts.length < 2) parts.push(`Wren is holding focus until ${S.mode.until}.`);
+  if (parts.length < 2) {
+    if (S.flow) parts.push(`You've been in flow for ${dur(S.now - S.flowSince)}.`);
+    else if (S.presence === "away") parts.push("You're away.");
+  }
+  if (!parts.length) parts.push("All six are idle.");
+  const w = S.waiting.length;
+  return { main: parts[0], sub: parts[1] || "", att: w ? `${w === 1 ? "One thing needs" : w === 2 ? "Two things need" : w + " things need"} you` : "" };
+}
+// each word is its own span so a new headline can arrive word by word; bird names take their bird's colour
+function headlineHTML(text) {
+  return text.replace(/(\d+)\s(h|min)\b/g, "$1\u00a0$2").replace(/until (\d)/g, "until\u00a0$1").split(" ").map((word, i) => {
+    const name = BIRDS.find(b => word.replace(/[^A-Za-z]/g, "") === b.name);
+    const inner = name ? `<span class="bn" style="--c:${name.color}">${esc(word)}</span>` : esc(word);
+    return `<span class="w" style="--i:${i}">${inner}</span>`;
+  }).join(" ");
+}
+
+// ───────────────────────── tasks, undo, replies
+function startTask(bird, title, verb, steps, onDone) {
+  const total = steps.reduce((a, s) => a + s.d, 0);
+  S.tasks[bird] = { title, verb, steps, total, startReal: performance.now(), heldAt: 0, onDone, elapsed() { return ((this.heldAt || performance.now()) - this.startReal) / 1000; } };
+  birdEvent(BI[bird], null); ui.dirty = true;
+}
+function setPaused(bird, on) {
+  if (!!S.paused[bird] === on) return;
+  S.paused[bird] = on;
+  const t = S.tasks[bird];
+  if (t) { if (on) t.heldAt = performance.now(); else if (t.heldAt) { t.startReal += performance.now() - t.heldAt; t.heldAt = 0; } }
+  ui.dirty = true;
+}
+function tickTasks() {
+  for (const [bird, task] of Object.entries(S.tasks)) {
+    if (task.heldAt || task.elapsed() < task.total) continue;
+    delete S.tasks[bird]; task.onDone(); ui.dirty = true;
+  }
+}
+function emit(bird, kind, topic, summary, extra = {}) {
+  const ev = Object.assign({ id: "L" + (++S.seq), t: S.now, bird, kind, topic, summary, att: "none", undo: null, cause: null, data: {} }, extra);
+  apply(ev, true); return ev;
+}
+const REVERSE = {
+  "file.move": ev => ev.data.from && !ev.data.count ? `put ${base(ev.data.to || ev.data.from)} back in ${dir(ev.data.from)}` : "put the files back where they were",
+  "git.revert": ev => `rolled back ${ev.data.task || "the merge"}`,
+  "mode.set": ev => `went back to ${ev.data.was || "the previous"} mode`,
+  "look.set": () => "put the previous look back",
+  "note.restore": () => "restored the note as it was",
+  "app.unhide": () => "unhid Safari",
+  "workspace.close": () => "closed the Robotics workspace",
+  "folder.remove_if_empty": ev => `removed the empty ${base(ev.data.path)} folder`,
+};
+function undo(id) {
+  const ev = S.byId[id]; if (!ev || !ev.undo || S.undone.has(id)) return false;
+  S.undone.add(id);
+  const what = (REVERSE[ev.undo] || (() => "undid it"))(ev);
+  if (ev.topic === "wren.mode.changed") { S.mode = { label: ev.data.was || "Morning", until: null, t0: S.now }; if (ev.data.to === "Focus") setPaused("crow", false); }
+  emit(ev.bird, "undo", ev.bird + ".action.undone", `${B(ev.bird).name} ${what}`, { cause: id });
+  reply(ev.bird, `Done. I ${what}.`);
+  return true;
+}
+let replyTimer = null;
+function showReply(bird, text) {
+  const el = $("reply");
+  el.innerHTML = bird ? `${glyphSVG(B(bird))}<b>${B(bird).name}</b>${text === "…" ? '<span class="typing"><i></i><i></i><i></i></span>' : esc(text)}` : esc(text);
+  el.classList.remove("gone");
+  clearTimeout(replyTimer); replyTimer = setTimeout(() => el.classList.add("gone"), 7000);
+}
+function reply(bird, text, delay = 600) {
+  showReply(bird, "…");
+  setTimeout(() => { showReply(bird, text); birdEvent(BI[bird], null, true); }, REDUCED ? 0 : delay);
+}
+
+// ───────────────────────── commands
+const ROUTES = [["wren", /\b(tidy|clean|sort|downloads|desktop|folder|mode|look|focus)\b/i], ["swift", /\b(run|build|test|merge|task|n1-\d+|pb-\d+|report)\b/i], ["crow", /\b(idea|ideas|pitch|tool)\b/i], ["owl", /\b(lock|guest|flow)\b/i], ["magpie", /\b(what|when|where|find|remember|note|did)\b/i], ["peacock", /\b(clip|post|devlog|kit)\b/i]];
+function handle(raw) {
+  const text = raw.trim(); if (!text) return;
+  let target = null, body = text;
+  const m = text.match(/^@?([a-z]+)[,:]?\s*(.*)$/i);
+  if (m) { const w = m[1].toLowerCase(); if (BI[w] != null) { target = w; body = m[2]; } else if (["everyone", "all", "everybody"].includes(w)) { target = "all"; body = m[2]; } }
+  if (!target) { const r = ROUTES.find(([, re]) => re.test(body)); if (r) target = r[0]; }
+  if (!target) { showReply(null, "Start with a name, like “Wren, tidy Downloads”."); return; }
+  const lb = body.toLowerCase();
+  if (target !== "all") focusBird(BI[target]);
+  if (/^(pause|stop|hold)\b/.test(lb) || /^(resume|continue|wake)\b/.test(lb)) {
+    const on = /^(pause|stop|hold)/.test(lb), ids = target === "all" ? BIRDS.map(b => b.id) : [target];
+    ids.forEach(id => setPaused(id, on));
+    showReply(null, `${on ? "Paused" : "Resumed"} ${ids.length === 6 ? "every bird" : B(ids[0]).name}.`); return;
+  }
+  if (target !== "all" && S.paused[target]) { showReply(null, `${B(target).name} is paused. Say “${target}, resume” first.`); return; }
+  if (/\bundo\b/.test(lb)) {
+    const last = [...S.events].reverse().find(e => (target === "all" || e.bird === target) && e.undo && !S.undone.has(e.id) && e.kind !== "undo");
+    if (!last || !undo(last.id)) showReply(null, "Nothing to undo there."); return;
+  }
+  if (target === "all") {
+    if (/focus/.test(lb)) { cmd.wren(lb); return; }
+    BIRDS.forEach((b, i) => setTimeout(() => birdEvent(i, null, true), i * 120));
+    showReply(null, BIRDS.map(b => `${b.name}: ${doingOf(b.id).toLowerCase()}`).join(". ") + "."); return;
+  }
+  cmd[target](lb, body);
+}
+const cmd = {
+  wren(lb) {
+    if (/(tidy|clean|sort)/.test(lb)) {
+      const where = (lb.match(/downloads|desktop/) || ["downloads"])[0], W = cap(where), n = where === "desktop" ? 17 : 41, moved = where === "desktop" ? 12 : 23, kept = where === "desktop" ? 2 : 3;
+      reply("wren", `On it. ${n} files in ${W}; anything that looks private stays put.`);
+      startTask("wren", `Tidying ${W}`, `tidying ${W}`, [{ label: "Reading the files", d: 1.6, count: n }, { label: "Matching each to a rule", d: 2.2 }, { label: "Moving files", d: 3.4, count: moved }, { label: "Leaving the private ones", d: 0.9 }], () => {
+        emit("wren", "action", "wren.file.moved", `Wren moved ${moved} files out of ${W}`, { undo: "file.move", data: { count: moved } });
+        reply("wren", `${W} is tidy. Moved ${moved}, left ${kept} that looked private.`, 150);
+      });
+      return;
+    }
+    if (/focus/.test(lb)) {
+      const h = lb.match(/(\d+(?:\.\d+)?)\s*(h|hour)/), mn = lb.match(/(\d+)\s*(m|min)/);
+      const mins = h ? Math.round(parseFloat(h[1]) * 60) : mn ? parseInt(mn[1], 10) : 120, until = hm(Math.min(1439, S.now + mins));
+      emit("wren", "action", "wren.mode.changed", `Wren switched to Focus mode until ${until}`, { undo: "mode.set", data: { to: "Focus", was: S.mode.label === "Focus" ? "Morning" : S.mode.label, settings: { until } } });
+      setPaused("crow", true);
+      reply("wren", `Focus mode until ${until}. Notifications are off, and Crow is paused till then.`);
+      return;
+    }
+    if (/night|morning/.test(lb)) { const to = /night/.test(lb) ? "Night" : "Morning"; emit("wren", "action", "wren.mode.changed", `Wren switched to ${to} mode`, { undo: "mode.set", data: { to, was: S.mode.label } }); reply("wren", `${to} mode.`); return; }
+    reply("wren", "I can tidy a folder, switch modes or change the look. Which one?");
+  },
+  swift(lb, body) {
+    const id = ((body.match(/\b(N\d-\d+|PB-\d+)\b/i) || [null, "N1-15"])[1]).toUpperCase();
+    if (/(run|build|start|do)\b/.test(lb) || /\b(n\d-\d+|pb-\d+)\b/i.test(lb)) {
+      if (S.tasks.swift || S.run) { reply("swift", "Mid-run. I'll queue it after this one."); return; }
+      reply("swift", `Copy. ${id} on its own branch, test first.`);
+      startTask("swift", `Building ${id}`, `building ${id}`, [{ label: `Branching task/${id}`, d: 1.2 }, { label: "Writing the done-means test", d: 2.4 }, { label: "Watching it fail", d: 1.0 }, { label: "Building until it passes", d: 4.2 }, { label: "Running the full suite", d: 4.6, count: 212 }, { label: "Merging into main", d: 0.9 }], () => {
+        emit("swift", "action", "swift.task.merged", `Swift merged ${id} with 6 new tests`, { undo: "git.revert", data: { task: id } });
+        reply("swift", `Green. ${id} merged, 6 new tests, 212 of 212 passing.`, 150);
+      });
+      return;
+    }
+    if (/(report|status|how|night|last)/.test(lb)) { reply("swift", `Amber. N1-13 and N1-14 merged overnight; N1-15 held on a timeout.${S.undone.size ? " You rolled back N1-14 this afternoon." : ""} Next run 22:15.`); return; }
+    reply("swift", "Give me a task id and I'll build it, or ask for the report.");
+  },
+  crow(lb) { reply("crow", /(idea|pitch|what|any)/.test(lb) ? "One open: naming STEP exports for you. You renamed 7 by hand this week, same pattern every time." : "Noted. I'll pitch it only if the pattern holds for a week."); },
+  owl(lb) {
+    if (/lock/.test(lb)) { emit("owl", "signal", "owl.screen.locked", "Owl locked the screen", {}); reply("owl", "Locked."); return; }
+    reply("owl", S.flow ? `In flow ${dur(S.now - S.flowSince)}. I'll keep it that way.` : "Watching. I'll only speak if it matters.");
+  },
+  magpie(lb, body) {
+    const rem = body.match(/^(?:remember|note)(?: that)?\s+(.+)/i);
+    if (rem) { emit("magpie", "note", "magpie.note.written", `Magpie saved a note: ${rem[1]}`, { undo: "note.restore" }); reply("magpie", "Saved to today's note."); return; }
+    const who = BIRDS.find(b => lb.includes(b.id));
+    if (who) { const evs = S.events.filter(e => e.bird === who.id), last = evs[evs.length - 1]; reply("magpie", `${who.name} has ${evs.length} entries today. The latest, at ${hm(last.t)}: ${short(last)}.`); return; }
+    reply("magpie", `Today has ${S.events.length} entries. Ask about a bird or a file.`);
+  },
+  peacock(lb) {
+    if (/(clip|post|devlog|kit|make)/.test(lb)) {
+      reply("peacock", "Worth showing. I'll cut it to 30 seconds.");
+      startTask("peacock", "Cutting a clip", "cutting a clip", [{ label: "Finding the best 90 seconds", d: 2 }, { label: "Cutting to 30 seconds", d: 3 }, { label: "Writing the caption in your voice", d: 2 }], () => {
+        emit("peacock", "report", "peacock.kit.ready", "Peacock made a post kit: 30 seconds of the Nest", { att: "inbox", data: { title: "30 seconds of the Nest" } });
+        reply("peacock", "The kit is ready. It's waiting on you; I never post it myself.", 150);
+      });
+      return;
+    }
+    reply("peacock", "Watching for something worth showing.");
+  },
+};
+
+// ───────────────────────── 3D studio
+const stage = $("stage");
+const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+const PR = Math.min(devicePixelRatio || 1, 2);
+renderer.setPixelRatio(PR);
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.NoToneMapping;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.VSMShadowMap;
+stage.appendChild(renderer.domElement);
+const lin = hex => new THREE.Color(hex).convertSRGBToLinear();
+const scene = new THREE.Scene();
+const BG = lin("#09090b");
+scene.fog = new THREE.Fog(BG.clone(), 9, 19);
+// the back wall: a soft wash of light above the horizon, tinted by the Mac's mode, mirrored faintly in the floor
+const TINT = lin("#5a64c8").multiplyScalar(0.05), tintGoal = new THREE.Color();
+const MODE_TINT = { Morning: "#c88a5c", Focus: "#5a64c8", Night: "#3a5aa8" };
+const wall = new THREE.Mesh(new THREE.SphereGeometry(70, 96, 48), new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false,
+  uniforms: { uBG: { value: BG }, uTint: { value: TINT } },
+  vertexShader: `varying vec3 vDir; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vDir = w.xyz - cameraPosition; gl_Position = projectionMatrix * viewMatrix * w; }`,
+  fragmentShader: `uniform vec3 uBG, uTint; varying vec3 vDir;
+    vec3 wallAt(float y, float az) {
+      float centre = exp(-az * az / 1.6);
+      return uTint * exp(-y / 0.16) * (0.35 + 0.65 * centre) + vec3(0.06) * exp(-pow(y / 0.0018, 2.0)) * centre;
+    }
+    void main() {
+      vec3 d = normalize(vDir); float az = atan(d.x, -d.z);
+      vec3 col = uBG + (d.y >= 0.0 ? vec3(0.0) : wallAt(-d.y, az) * 0.45);
+      gl_FragColor = vec4(col, 1.0);
+    }`,
+}));
+wall.renderOrder = -10; scene.add(wall);
+// a curved studio wall far behind the flock; the floor sweeps up into it, and the light is brightest where they meet
+const WALL_Z = -22, WALL_R = 4;
+const cove = (() => {
+  const prof = [];
+  for (let k = 0; k < 10; k++) prof.push([-10 + k * (WALL_Z + 10) / 10, -0.002]);
+  for (let k = 0; k <= 20; k++) { const a = (k / 20) * Math.PI / 2; prof.push([WALL_Z - Math.sin(a) * WALL_R, WALL_R - Math.cos(a) * WALL_R]); }
+  for (let h = 1; h <= 6; h++) prof.push([WALL_Z - WALL_R, WALL_R + h * 4]);
+  const XS = 48, W = 140, pos = [], idx = [];
+  prof.forEach(([z, y]) => { for (let i = 0; i <= XS; i++) pos.push(-W / 2 + (i / XS) * W, y, z); });
+  for (let j = 0; j < prof.length - 1; j++) for (let i = 0; i < XS; i++) { const a = j * (XS + 1) + i, b = a + XS + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+  return new THREE.Mesh(g, new THREE.ShaderMaterial({
+    depthWrite: false, fog: false, uniforms: { uBG: { value: BG }, uTint: { value: TINT } },
+    vertexShader: `varying vec3 vW; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+    fragmentShader: `uniform vec3 uBG, uTint; varying vec3 vW;
+      void main() {
+        float centre = exp(-vW.x * vW.x / 260.0);
+        float near = 1.0 - smoothstep(-19.0, -7.0, vW.z);
+        vec3 col = uBG + uTint * exp(-max(vW.y, 0.0) / 2.6) * (0.3 + 0.7 * centre) * 1.15 * near;
+        gl_FragColor = vec4(col, 1.0);
+      }`,
+  }));
+})();
+cove.renderOrder = -9; scene.add(cove);
+
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04).texture;
+const STRIPS = (() => {
+  const env = new THREE.Scene(); env.background = lin("#050506");
+  const box = (w, h, x, y, z, rx, ry, k) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0.98, 0.96).multiplyScalar(k), side: THREE.DoubleSide })); m.position.set(x, y, z); m.rotation.set(rx, ry, 0); env.add(m); };
+  box(7, 1.4, 0, 5, 0, Math.PI / 2, 0, 5);
+  box(0.4, 7, -5, 1.5, 1.5, 0, Math.PI / 2, 4);
+  box(0.4, 7, 5, 1.5, 1.5, 0, -Math.PI / 2, 3);
+  box(12, 0.2, 0, 0.5, -6, 0, 0, 5);
+  box(6, 3, 0, 2, 6, 0, Math.PI, 0.9);
+  return pmrem.fromScene(env, 0.02).texture;
+})();
+const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.1, 100);
+
+const key = new THREE.DirectionalLight(0xfff4ea, 1.6);
+key.position.set(-2, 9, 3); key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 14; key.shadow.blurSamples = 24; key.shadow.bias = -0.0004;
+Object.assign(key.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 1, far: 20 });
+scene.add(key);
+const rim = new THREE.DirectionalLight(0xdbe4ff, 2.4); rim.position.set(0.6, 2.4, -7); scene.add(rim);
+const rim2 = new THREE.DirectionalLight(0xffe2c8, 0.9); rim2.position.set(-5, 2.5, -4); scene.add(rim2);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x09090b, 0.18));
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(140, 60), new THREE.MeshPhysicalMaterial({ color: lin("#0b0b0d"), roughness: 0.6, metalness: 0, specularIntensity: 0.065, envMapIntensity: 0, transparent: true, opacity: 0.8 }));
+const sweep = new THREE.SpotLight(0xfff6ee, 0, 22, 0.2, 1, 1.2); sweep.position.set(-12, 4.5, 6); sweep.target.position.set(-12, 0.6, 0.3); scene.add(sweep, sweep.target);
+const spot = new THREE.SpotLight(0xfff3e8, 1.5, 26, 0.5, 1, 1.3); spot.position.set(0, 10, 2.2); spot.target.position.set(0, 0, 0.2); scene.add(spot, spot.target);
+floor.material.onBeforeCompile = sh => {
+  sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vFW;").replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvFW = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+  sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vFW;").replace("#include <output_fragment>", "diffuseColor.a *= 1.0 - smoothstep(8.0, 17.0, -vFW.z);\n#include <output_fragment>").replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
+    vec2 g = vFW.xz / 0.28; float fw = length(fwidth(g));
+    float dotm = 1.0 - smoothstep(0.055, 0.055 + fw * 0.9, length(fract(g) - 0.5));
+    float rr = length(vFW.xz - vec2(0.0, 0.3));
+    totalEmissiveRadiance += vec3(0.85, 0.87, 0.95) * dotm * 0.016 * (1.0 - smoothstep(1.5, 6.5, rr)) * (1.0 - smoothstep(0.25, 0.6, fw));`);
+};
+floor.rotation.x = -Math.PI / 2; floor.position.z = WALL_Z + 30; floor.receiveShadow = true; scene.add(floor);
+
+// ── each bird is its app icon made solid: a glossy tile in its colour, the glyph floating just in front in black enamel
+// The glyph is drawn exactly as the official SVG, then traced into one clean outline, so crossing strokes fuse instead of overlapping.
+function glyphShapes(bird) {
+  const N = 360, PAD = 6, K = N / (100 + PAD * 2);
+  const cv = document.createElement("canvas"); cv.width = cv.height = N;
+  const cx = cv.getContext("2d");
+  cx.setTransform(K, 0, 0, K, PAD * K, PAD * K);
+  cx.lineCap = "round"; cx.lineJoin = "round"; cx.fillStyle = cx.strokeStyle = "#fff";
+  const doc = new DOMParser().parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${bird.svg}</svg>`, "image/svg+xml");
+  for (const el of doc.documentElement.children) {
+    let p;
+    if (el.tagName === "circle") { p = new Path2D(); p.arc(+el.getAttribute("cx"), +el.getAttribute("cy"), +el.getAttribute("r"), 0, Math.PI * 2); }
+    else p = new Path2D(el.getAttribute("d"));
+    if (el.getAttribute("fill") !== "none") cx.fill(p);
+    if (el.getAttribute("stroke") !== "none" && el.getAttribute("stroke-width")) { cx.lineWidth = +el.getAttribute("stroke-width"); cx.stroke(p); }
+  }
+  const px = cx.getImageData(0, 0, N, N).data, v = (x, y) => (x < 0 || y < 0 || x >= N || y >= N) ? 0 : px[(y * N + x) * 4 + 3] / 255;
+  // marching squares at the half-coverage line; each crossing is keyed by its cell edge so segments chain into loops
+  const T = 0.5, next = new Map(), pt = new Map();
+  const ek = (x, y, h) => (h ? "h" : "v") + x + "," + y;
+  const cross = (x, y, h) => { const k = ek(x, y, h); if (!pt.has(k)) { const a = v(x, y), b = h ? v(x + 1, y) : v(x, y + 1), t = (T - a) / (b - a); pt.set(k, h ? [x + t, y] : [x, y + t]); } return k; };
+  for (let y = -1; y < N; y++) for (let x = -1; x < N; x++) {
+    const a = v(x, y) > T, b = v(x + 1, y) > T, c = v(x + 1, y + 1) > T, d = v(x, y + 1) > T;
+    const top = () => cross(x, y, 1), right = () => cross(x + 1, y, 0), bottom = () => cross(x, y + 1, 1), left = () => cross(x, y, 0);
+    const seg = (p, q) => next.set(p(), q());
+    const code = (a ? 8 : 0) | (b ? 4 : 0) | (c ? 2 : 0) | (d ? 1 : 0);
+    switch (code) {
+      case 1: seg(left, bottom); break; case 2: seg(bottom, right); break; case 3: seg(left, right); break;
+      case 4: seg(right, top); break; case 6: seg(bottom, top); break; case 7: seg(left, top); break;
+      case 8: seg(top, left); break; case 9: seg(top, bottom); break; case 11: seg(top, right); break;
+      case 12: seg(right, left); break; case 13: seg(right, bottom); break; case 14: seg(bottom, left); break;
+      case 5: if ((v(x, y) + v(x + 1, y) + v(x + 1, y + 1) + v(x, y + 1)) / 4 > T) { seg(left, top); seg(right, bottom); } else { seg(left, bottom); seg(right, top); } break;
+      case 10: if ((v(x, y) + v(x + 1, y) + v(x + 1, y + 1) + v(x, y + 1)) / 4 > T) { seg(top, right); seg(bottom, left); } else { seg(top, left); seg(bottom, right); } break;
+    }
+  }
+  const loops = [], seen = new Set();
+  for (const start of next.keys()) {
+    if (seen.has(start)) continue;
+    const loop = []; let k = start;
+    while (k && !seen.has(k)) { seen.add(k); const [gx, gy] = pt.get(k); loop.push(new THREE.Vector2((gx / K - PAD - 50) / 50, -(gy / K - PAD - 50) / 50)); k = next.get(k); }
+    const clean = loop.filter((p, i) => i % 2 === 0).filter((p, i, a) => p.distanceTo(a[(i + 1) % a.length]) > 1e-4);
+    if (clean.length > 6) loops.push(clean);
+  }
+  const area = l => l.reduce((s, p, i) => { const q = l[(i + 1) % l.length]; return s + p.x * q.y - q.x * p.y; }, 0) / 2;
+  const inside = (p, l) => { let c = false; for (let i = 0, j = l.length - 1; i < l.length; j = i++) { const a = l[i], b = l[j]; if ((a.y > p.y) !== (b.y > p.y) && p.x < (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x) c = !c; } return c; };
+  for (let i = loops.length - 1; i >= 0; i--) if (Math.abs(area(loops[i])) < 2e-4) loops.splice(i, 1);
+  const depth = loops.map(l => loops.filter(o => o !== l && Math.abs(area(o)) > Math.abs(area(l)) && inside(l[0], o)).length);
+  const shapes = [];
+  loops.forEach((l, i) => {
+    if (depth[i] % 2) return;
+    const s = new THREE.Shape(l);
+    loops.forEach((h, j) => { if (depth[j] === depth[i] + 1 && inside(h[0], l)) s.holes.push(new THREE.Path(h)); });
+    shapes.push(s);
+  });
+  return shapes;
+}
+function roundedSquare(h, r) {
+  const s = new THREE.Shape();
+  s.moveTo(-h + r, -h); s.lineTo(h - r, -h); s.quadraticCurveTo(h, -h, h, -h + r); s.lineTo(h, h - r); s.quadraticCurveTo(h, h, h - r, h);
+  s.lineTo(-h + r, h); s.quadraticCurveTo(-h, h, -h, h - r); s.lineTo(-h, -h + r); s.quadraticCurveTo(-h, -h, -h + r, -h);
+  return s;
+}
+const TILE_D = 0.16, TILE_B = 0.07, GLYPH_Z = TILE_D / 2 + TILE_B + 0.045 + 0.026;
+const tileGeo = (() => { const g = new THREE.ExtrudeGeometry(roundedSquare(0.93, 0.26), { depth: TILE_D, bevelEnabled: true, bevelThickness: TILE_B, bevelSize: TILE_B, bevelSegments: 10, curveSegments: 24 }); g.translate(0, 0, -TILE_D / 2); return g; })();
+function sculpture(bird, tileMat, glyphMat) {
+  const g = new THREE.Group();
+  const tile = new THREE.Mesh(tileGeo, tileMat); tile.castShadow = true; tile.receiveShadow = true; g.add(tile);
+  const gd = 0.07, gb = 0.026;
+  const geo = new THREE.ExtrudeGeometry(glyphShapes(bird), { depth: gd, bevelEnabled: true, bevelThickness: gb, bevelSize: 0.012, bevelSegments: 5, curveSegments: 4 });
+  { const n = geo.attributes.normal; for (let k = 0; k < n.count; k++) { const x = n.getX(k), y = n.getY(k), z = n.getZ(k); if (!(x * x + y * y + z * z > 1e-8)) n.setXYZ(k, 0, 0, 1); } }
+  const glyph = new THREE.Mesh(geo, glyphMat); glyph.castShadow = true; glyph.receiveShadow = true;
+  glyph.position.z = GLYPH_Z; g.add(glyph);
+  const box = new THREE.Box3().setFromObject(g);
+  g.userData.minY = box.min.y;
+  return g;
+}
+
+const GREY = lin("#55555a"), SC = 0.5, GLYPH_DARK = lin("#0e0e10");
+function fadeReflection(sh) {
+  sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying float vWY;").replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvWY = (modelMatrix * vec4(transformed, 1.0)).y;");
+  sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying float vWY;").replace("#include <dithering_fragment>", "#include <dithering_fragment>\nif (vWY < 0.0) gl_FragColor.rgb *= pow(smoothstep(-0.5, -0.04, vWY), 2.0);");
+}
+// a soft shadow under each floating bird grounds it on the floor
+const blobTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d"), g = x.createRadialGradient(64, 64, 0, 64, 64, 64); g.addColorStop(0, "rgba(0,0,0,0.85)"); g.addColorStop(0.45, "rgba(0,0,0,0.38)"); g.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = g; x.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })();
+const flock = BIRDS.map((b, i) => {
+  const col = lin(b.color);
+  const mat = new THREE.MeshPhysicalMaterial({ color: col.clone(), roughness: 0.3, metalness: 0.0, clearcoat: 1, clearcoatRoughness: 0.04, envMap: STRIPS, envMapIntensity: 1.1, sheen: 0.35, sheenRoughness: 0.5, sheenColor: col.clone().lerp(new THREE.Color(1, 1, 1), 0.5) });
+  const gmat = new THREE.MeshPhysicalMaterial({ color: lin("#0e0e10"), roughness: 0.34, metalness: 0.15, clearcoat: 0.8, clearcoatRoughness: 0.22, envMap: STRIPS, envMapIntensity: 1.5, emissive: col.clone(), emissiveIntensity: 0 });
+  mat.onBeforeCompile = fadeReflection; gmat.onBeforeCompile = fadeReflection;
+  const s = sculpture(b, mat, gmat); s.scale.setScalar(SC);
+  const holder = new THREE.Group(); holder.add(s); scene.add(holder);
+  s.traverse(o => { if (o.isMesh) { o.userData.bird = i; o.layers.enable(2); } });
+  // floor ring: track + progress arc
+  const track = new THREE.Mesh(new THREE.RingGeometry(0.7, 0.708, 160), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.06, depthWrite: false }));
+  const arcMat = new THREE.MeshBasicMaterial({ color: col.clone().multiplyScalar(1.5), transparent: true, opacity: 0.95, depthWrite: false, side: THREE.DoubleSide });
+  const arc = new THREE.Mesh(new THREE.RingGeometry(0.696, 0.712, 160, 1, 0, 0.0001), arcMat);
+  [track, arc].forEach(m => { m.rotation.x = -Math.PI / 2; scene.add(m); });
+  const tip = new THREE.Mesh(new THREE.CircleGeometry(0.022, 32), new THREE.MeshBasicMaterial({ color: col.clone().multiplyScalar(3), transparent: true, depthWrite: false }));
+  tip.rotation.x = -Math.PI / 2; tip.visible = false; scene.add(tip);
+  const blob = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.62), new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false, opacity: 0.8 }));
+  blob.rotation.x = -Math.PI / 2; scene.add(blob);
+  const glow = new THREE.PointLight(new THREE.Color(b.color), 0, 3.2, 2); scene.add(glow);
+  return { b, col, mat, gmat, s, glow, rank: i, target: new THREE.Vector3(), holder, track, arc, tip, blob, arcFrac: -1, phase: i * 1.37, hop: -9, look: 0, lift: 0, pauseK: 0, dimK: 0, base: new THREE.Vector3() };
+});
+const mirrorRoot = new THREE.Group(); mirrorRoot.scale.y = -1; scene.add(mirrorRoot);
+flock.forEach(f => { f.refl = f.holder.clone(true); f.refl.renderOrder = -1; f.refl.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } }); mirrorRoot.add(f.refl); });
+const V_SLOTS = [[0, 0, 0.9], [-1.8, 0.22, 0.05], [1.8, 0.22, 0.05], [-3.65, 0.44, -0.8], [3.65, 0.44, -0.8], [-5.45, 0.66, -1.65]];
+function rankFlock() {
+  const w = id => { const st = statusOf(id); return st === "working" ? 0 : st === "paused" ? 2 : 1; };
+  [...flock].sort((p, q) => w(p.b.id) - w(q.b.id) || p.rank0 - q.rank0).forEach((f, k) => { f.rank = k; });
+}
+function layout(snap) {
+  const portrait = innerWidth / innerHeight < 0.9;
+  rankFlock();
+  flock.forEach((f, i) => {
+    const k = f.rank;
+    if (portrait) f.target.set((k % 3 - 1) * 1.62, 0, k < 3 ? 1.2 : -2.3);
+    else f.target.set(...V_SLOTS[k]);
+    if (snap) f.base.copy(f.target);
+    f.arcFrac = -1;
+  });
+}
+flock.forEach((f, i) => { f.rank0 = i; });
+layout(true);
+
+function setArc(f, frac) {
+  const k = Math.round(frac * 400) / 400;
+  if (k === f.arcFrac) return; f.arcFrac = k;
+  f.arc.geometry.dispose();
+  f.arc.geometry = new THREE.RingGeometry(0.696, 0.712, 160, 1, Math.PI / 2, -Math.max(0.0001, k * Math.PI * 2));
+  f.arc.visible = k > 0.001;
+  const a = Math.PI / 2 - k * Math.PI * 2;
+  f.tip.visible = f.arc.visible && k < 0.999;
+  f.tip.position.set(f.base.x + Math.cos(a) * 0.704, 0.006, f.base.z - Math.sin(a) * 0.704);
+}
+function birdEvent(i, ev, small) { if (i == null || REDUCED) return; flock[i].hop = clock; flock[i].hopSmall = !!small; if (ev) flock[i].lastEv = { ev, at: clock }; }
+
+class SoftBloom extends THREE.Pass {
+  constructor(strength, threshold, levels = 6) {
+    super(); this.needsSwap = false; this.strength = strength; this.levels = levels;
+    const mk = () => new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false });
+    this.down = Array.from({ length: levels }, mk); this.up = Array.from({ length: levels }, mk);
+    const vs = `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+    this.mDown = new THREE.ShaderMaterial({ uniforms: { tSrc: { value: null }, uPx: { value: new THREE.Vector2() }, uTh: { value: threshold }, uFirst: { value: 0 } }, vertexShader: vs, depthTest: false, depthWrite: false,
+      fragmentShader: `uniform sampler2D tSrc; uniform vec2 uPx; uniform float uTh, uFirst; varying vec2 vUv;
+        vec3 f(vec2 uv) { vec3 c = texture2D(tSrc, uv).rgb; c = (c.r == c.r && c.g == c.g && c.b == c.b) ? min(max(c, vec3(0.0)), vec3(24.0)) : vec3(0.0); if (uFirst > 0.5) { float l = max(c.r, max(c.g, c.b)); c *= max(0.0, l - uTh) / max(l, 1e-4); } return c; }
+        void main() { vec3 s = f(vUv) * 4.0 + f(vUv - uPx) + f(vUv + uPx) + f(vUv + vec2(uPx.x, -uPx.y)) + f(vUv - vec2(uPx.x, -uPx.y)); gl_FragColor = vec4(s / 8.0, 1.0); }` });
+    this.mUp = new THREE.ShaderMaterial({ uniforms: { tSrc: { value: null }, tAdd: { value: null }, uPx: { value: new THREE.Vector2() } }, vertexShader: vs, depthTest: false, depthWrite: false,
+      fragmentShader: `uniform sampler2D tSrc, tAdd; uniform vec2 uPx; varying vec2 vUv;
+        void main() { vec2 p = uPx;
+          vec3 s = texture2D(tSrc, vUv + vec2(-2.0 * p.x, 0.0)).rgb + texture2D(tSrc, vUv + vec2(2.0 * p.x, 0.0)).rgb + texture2D(tSrc, vUv + vec2(0.0, 2.0 * p.y)).rgb + texture2D(tSrc, vUv + vec2(0.0, -2.0 * p.y)).rgb
+                 + 2.0 * (texture2D(tSrc, vUv + p).rgb + texture2D(tSrc, vUv - p).rgb + texture2D(tSrc, vUv + vec2(p.x, -p.y)).rgb + texture2D(tSrc, vUv + vec2(-p.x, p.y)).rgb);
+          gl_FragColor = vec4(s / 12.0 + texture2D(tAdd, vUv).rgb, 1.0); }` });
+    this.mOut = new THREE.ShaderMaterial({ uniforms: { tSrc: { value: null }, uK: { value: 0 } }, vertexShader: vs, depthTest: false, depthWrite: false, transparent: true, blending: THREE.AdditiveBlending,
+      fragmentShader: `uniform sampler2D tSrc; uniform float uK; varying vec2 vUv; void main() { gl_FragColor = vec4(texture2D(tSrc, vUv).rgb * uK, 1.0); }` });
+    this.q = new THREE.FullScreenQuad();
+  }
+  setSize(w, h) { this.down.forEach((t, i) => { w = Math.max(1, Math.floor(w / 2)); h = Math.max(1, Math.floor(h / 2)); t.setSize(w, h); this.up[i].setSize(w, h); }); }
+  render(renderer, writeBuffer, readBuffer) {
+    const auto = renderer.autoClear; renderer.autoClear = false;
+    let src = readBuffer.texture, sw = readBuffer.width, sh = readBuffer.height;
+    this.q.material = this.mDown;
+    this.down.forEach((t, i) => { const u = this.mDown.uniforms; u.tSrc.value = src; u.uPx.value.set(1 / sw, 1 / sh); u.uFirst.value = i === 0 ? 1 : 0; renderer.setRenderTarget(t); this.q.render(renderer); src = t.texture; sw = t.width; sh = t.height; });
+    let cur = this.down[this.levels - 1];
+    this.q.material = this.mUp;
+    for (let i = this.levels - 2; i >= 0; i--) { const u = this.mUp.uniforms; u.tSrc.value = cur.texture; u.tAdd.value = this.down[i].texture; u.uPx.value.set(0.5 / cur.width, 0.5 / cur.height); renderer.setRenderTarget(this.up[i]); this.q.render(renderer); cur = this.up[i]; }
+    this.q.material = this.mOut; this.mOut.uniforms.tSrc.value = cur.texture; this.mOut.uniforms.uK.value = this.strength / this.levels;
+    renderer.setRenderTarget(readBuffer); this.q.render(renderer);
+    renderer.autoClear = auto;
+  }
+}
+const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: renderer.capabilities.isWebGL2 ? 4 : 0 });
+const composer = new THREE.EffectComposer(renderer, rt);
+composer.setPixelRatio(PR); composer.setSize(innerWidth, innerHeight);
+composer.addPass(new THREE.RenderPass(scene, camera));
+// depth of field: focus held on the lead bird
+const dof = new THREE.BokehPass(scene, camera, { focus: 11, aperture: 0.0009, maxblur: 0.005 }); dof.needsSwap = true;
+{ const r0 = dof.render.bind(dof); dof.render = (renderer, w, rb, dt, m) => { const su = renderer.shadowMap.autoUpdate; renderer.shadowMap.autoUpdate = false; r0(renderer, w, rb, dt, m); renderer.shadowMap.autoUpdate = su; }; }
+composer.addPass(dof);
+composer.addPass(new SoftBloom(0.45, 2.2));
+const finish = new THREE.ShaderPass({
+  uniforms: { tDiffuse: { value: null }, uT: { value: 0 }, uRes: { value: new THREE.Vector2(innerWidth, innerHeight) } },
+  vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uT; uniform vec2 uRes; varying vec2 vUv;
+    vec3 rrt(vec3 v) { vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }
+    vec3 aces(vec3 c) {
+      const mat3 I = mat3(vec3(0.59719, 0.07600, 0.02840), vec3(0.35458, 0.90834, 0.13383), vec3(0.04823, 0.01566, 0.83777));
+      const mat3 O = mat3(vec3(1.60475, -0.10208, -0.00327), vec3(-0.53108, 1.10813, -0.07276), vec3(-0.07367, -0.00605, 1.07602));
+      return clamp(O * rrt(I * (c / 0.6)), 0.0, 1.0);
+    }
+    vec3 srgb(vec3 c) { return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+    void main() {
+      vec2 c = (vUv - 0.5) * vec2(uRes.x / uRes.y, 1.0);
+      vec3 src = texture2D(tDiffuse, vUv).rgb; src = (src.r == src.r && src.g == src.g && src.b == src.b) ? max(src, vec3(0.0)) : vec3(0.0);
+      vec3 col = srgb(aces(src));
+      col *= mix(0.78, 1.0, smoothstep(1.15, 0.35, length(c)));
+      col += (hash(vUv * uRes + fract(uT) * 91.7) - 0.5) * 0.012;
+      gl_FragColor = vec4(col, 1.0);
+    }`,
+});
+composer.addPass(finish);
+
+// camera
+const cam = { pos: new THREE.Vector3(0, 2.4, 11), look: new THREE.Vector3(0, 0.6, 0), tPos: new THREE.Vector3(), tLook: new THREE.Vector3() };
+function restView() {
+  const a = camera.aspect, portrait = a < 0.9;
+  const half = portrait ? 2.75 : 7.4;
+  const d = Math.max(9, half / (Math.tan(THREE.MathUtils.degToRad(15)) * a) + 1.0);
+  cam.tPos.set(portrait ? 0 : 1.1, portrait ? d * 0.62 + 0.8 : 2.5, d + 1.0); cam.tLook.set(portrait ? 0 : 1.1, portrait ? -0.2 : 0.75, -1.0);
+}
+function focusView(i) {
+  const f = flock[i], a = camera.aspect, wide = a > 1.1;
+  const p = f.base;
+  cam.tPos.set(p.x + (wide ? 0.2 : 0), (wide ? 1.05 : 1.6) + p.y, p.z + (wide ? 5.0 : 5.8));
+  cam.tLook.set(p.x - (wide ? 1.0 : 0), (wide ? 0.46 : 0.2) + p.y, p.z);
+}
+function focusBird(i) {
+  S.focus = i; ui.dirty = true;
+  $("focus").classList.remove("away"); $("brief").classList.add("away"); $("tags").classList.add("dim"); document.querySelector(".ui").classList.add("focused");
+}
+function unfocus() {
+  S.focus = null; ui.dirty = true;
+  $("focus").classList.add("away"); $("brief").classList.remove("away"); $("tags").classList.remove("dim"); document.querySelector(".ui").classList.remove("focused");
+}
+
+// picking
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+const meshes = []; flock.forEach(f => f.s.traverse(o => o.isMesh && meshes.push(o)));
+let cue = null;
+let hover = null, downAt = null, pointer = { x: 0, y: 0, sx: 0, sy: 0 };
+function pick(cx, cy) { ndc.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera); const h = ray.intersectObjects(meshes, false)[0]; return h ? h.object.userData.bird : null; }
+renderer.domElement.addEventListener("pointermove", e => {
+  pointer.x = e.clientX / innerWidth * 2 - 1; pointer.y = -(e.clientY / innerHeight) * 2 + 1;
+  hover = pick(e.clientX, e.clientY); renderer.domElement.style.cursor = hover != null ? "pointer" : "default";
+});
+renderer.domElement.addEventListener("pointerdown", e => { downAt = { x: e.clientX, y: e.clientY }; });
+renderer.domElement.addEventListener("pointerup", e => {
+  if (!downAt || Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 6) return;
+  const i = pick(e.clientX, e.clientY);
+  if (i != null) focusBird(i); else if (S.focus != null) unfocus();
+});
+
+// ───────────────────────── HTML layer
+const tagsEl = $("tags");
+const tags = BIRDS.map((b, i) => { const el = document.createElement("button"); el.className = "tag"; el.style.setProperty("--c", b.color); el.style.animationDelay = (900 + i * 90) + "ms"; el.innerHTML = `<b>${b.name}</b><span class="s"><i class="dot"></i><span class="d"></span></span>`; el.addEventListener("click", () => focusBird(i)); el.addEventListener("pointerenter", () => { hover = i; }); el.addEventListener("pointerleave", () => { hover = null; }); tagsEl.appendChild(el); return el; });
+const ui = { dirty: true, slow: 0 };
+const tmp = new THREE.Vector3();
+function placeTags() {
+  flock.forEach((f, i) => {
+    tmp.set(f.holder.position.x, f.holder.position.y - SC * 1.08 * f.holder.scale.y - 0.06, f.holder.position.z + 0.2).project(camera);
+    const x = (tmp.x + 1) / 2 * innerWidth, y = (1 - tmp.y) / 2 * innerHeight;
+    tags[i].style.transform = `translate(${x.toFixed(1)}px, ${(y + 6).toFixed(1)}px) translate(-50%, 0)`;
+    tags[i].style.zIndex = String(10 - f.rank);
+  });
+}
+function renderTags() {
+  flock.forEach((f, i) => {
+    const id = f.b.id, st = statusOf(id), recent = f.lastEv && clock - f.lastEv.at < 6;
+    const live = recent ? cap(short(f.lastEv.ev)) : ""; tags[i].querySelector(".d").textContent = live && live.length <= 30 ? live : tagOf(id);
+    tags[i].className = "tag" + (recent ? " live" : "") + (st === "working" ? " working" : "") + (st === "paused" ? " paused" : "");
+  });
+}
+// components: mode switch, focus widget, needs-you stack, live activity
+const MODES = [["Morning", '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1"/></svg>'], ["Focus", '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2.2" fill="currentColor" stroke="none"/></svg>'], ["Night", '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M13 9.8A5.5 5.5 0 0 1 6.2 3a5.5 5.5 0 1 0 6.8 6.8z"/></svg>']];
+const modeBtns = MODES.map(([m, ic]) => { const b = document.createElement("button"); b.type = "button"; b.innerHTML = ic + m; b.addEventListener("click", () => { if (S.mode.label !== m) handle(`wren, ${m.toLowerCase()}${m === "Focus" ? " for 2 hours" : ""}`); }); $("modes").appendChild(b); return b; });
+function renderComponents() {
+  modeBtns.forEach((b, i) => b.classList.toggle("on", MODES[i][0] === S.mode.label));
+  const on = modeBtns.find(b => b.classList.contains("on")); if (on && on.offsetWidth) { $("knob").style.width = on.offsetWidth + "px"; $("knob").style.transform = `translateX(${on.offsetLeft}px)`; if (!$("modes").classList.contains("ready")) requestAnimationFrame(() => $("modes").classList.add("ready")); }
+  const p = progressOf("wren"), fw = $("focus-w"); fw.hidden = !(S.mode.until && p);
+  if (!fw.hidden) { $("ring-arc").style.strokeDashoffset = (150.8 * (1 - p.frac)).toFixed(1); $("ring-t").textContent = Math.round(p.frac * 100) + "%"; $("fw-p").textContent = `${p.eta} · Notifications off`; $("fw-h").textContent = `Focus until ${S.mode.until}`; }
+  const items = S.waiting.map(id => S.byId[id]).filter(Boolean); $("needs-n").textContent = String(items.length);
+  const nh = items.length ? items.map(ev => { const w = waitText(ev); return `<div class="need">${tileSVG(B(ev.bird))}<div><p>${esc(w.p)}</p><small class="num">${esc(w.s)}</small><div class="a">${w.a.map(([l, k]) => `<button type="button" data-w="${ev.id}:${k}">${l}</button>`).join("")}</div></div></div>`; }).join("") : `<p class="none">Nothing needs you.</p>`;
+  if ($("needs").dataset.h !== nh) { $("needs").innerHTML = nh; $("needs").dataset.h = nh; }
+  const evs = S.events.filter(e => BI[e.bird] != null).slice(-3).reverse();
+  const fh = evs.map(e => { const und = S.undone.has(e.id); return `<div class="ev">${tileSVG(B(e.bird))}<div class="x"><span${und ? ' style="text-decoration:line-through;color:var(--fg-3)"' : ""}>${esc(cap(short(e)))}</span><small class="num">${B(e.bird).name} · ${hm(e.t)}</small></div>${e.undo && !und && e.kind !== "undo" ? `<button type="button" data-undo="${e.id}">Undo</button>` : "<span></span>"}</div>`; }).join("");
+  if ($("feed").dataset.h !== fh) { $("feed").innerHTML = fh; $("feed").dataset.h = fh; }
+}
+$("feed").addEventListener("click", e => { const t = e.target.closest("[data-undo]"); if (t) undo(t.dataset.undo); });
+function renderBrief() {
+  renderComponents();
+  const h = headline(), hl = $("headline"), sub = $("sub");
+  if (hl.dataset.h !== h.main) {
+    const shape = h.main.replace(/[\d\s]/g, ""), changed = hl.dataset.shape !== undefined && hl.dataset.shape !== shape;
+    hl.innerHTML = headlineHTML(h.main); hl.dataset.h = h.main; hl.dataset.shape = shape;
+    if (changed && !REDUCED) { hl.classList.remove("anim"); void hl.offsetWidth; hl.classList.add("anim"); clearTimeout(hl._t); hl._t = setTimeout(() => hl.classList.remove("anim"), 1600); }
+  }
+  const subHTML = esc(h.sub).replace(/(\d+) (h|min)/g, "$1\u00a0$2") + (h.att ? `${h.sub ? " " : ""}<button class="att" type="button">${esc(h.att)}<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h8M6.5 2.5 10 6l-3.5 3.5"/></svg></button>` : "");
+  if (sub.dataset.h !== subHTML) { sub.innerHTML = subHTML; sub.dataset.h = subHTML; }
+  $("when").innerHTML = `Tuesday 10 November<b>${hm(S.now)}</b>`;
+  const w = S.waiting.length; $("waiting-n").textContent = String(w); $("waiting-btn").hidden = true;
+}
+function renderFocus() {
+  if (S.focus == null) return;
+  const f = flock[S.focus], b = f.b, p = progressOf(b.id);
+  $("f-name").textContent = b.name; $("f-role").textContent = b.role;
+  $("f-doing").textContent = doingOf(b.id) + ".";
+  $("f-prog").hidden = !p;
+  if (p) { $("f-pct").innerHTML = `${Math.round(p.frac * 100)}<small>%</small>`; $("f-bar").style.width = (p.frac * 100).toFixed(1) + "%"; $("f-bar").style.background = b.color; $("f-step").textContent = p.step; $("f-eta").textContent = p.eta || ""; }
+  const stepsEl = $("f-steps"); stepsEl.hidden = !(p && p.steps);
+  if (p && p.steps) stepsEl.innerHTML = p.steps.map((st, i) => `<li class="${i < p.si ? "done" : i === p.si ? "on" : ""}"><span class="m">${i < p.si ? "✓" : i === p.si ? "›" : "·"}</span><span>${esc(st.label)}</span><span class="c">${i === p.si && st.count ? `${Math.floor(p.within * st.count)} / ${st.count}` : i < p.si && st.count ? st.count : ""}</span></li>`).join("");
+  $("f-recent").hidden = !!(p && p.steps);
+  $("f-pause").textContent = S.paused[b.id] ? "Resume" : "Pause";
+  $("f-msg").textContent = `Message ${b.name}`;
+  const lastUndo = [...S.events].reverse().find(e => e.bird === b.id && e.undo && !S.undone.has(e.id) && e.kind !== "undo");
+  $("f-undo").hidden = !lastUndo;
+  const mine = S.events.filter(e => e.bird === b.id).slice(-3).reverse();
+  const html = mine.map(e => { const und = S.undone.has(e.id); return `<div class="r${und ? " undone" : ""}"><span class="t num">${hm(e.t)}</span><span class="x">${esc(cap(short(e)))}</span>${e.undo && !und && e.kind !== "undo" ? `<button data-undo="${e.id}">Undo</button>` : "<span></span>"}</div>`; }).join("");
+  if ($("f-recent").dataset.h !== html) { $("f-recent").innerHTML = html; $("f-recent").dataset.h = html; }
+}
+$("f-recent").addEventListener("click", e => { const t = e.target.closest("[data-undo]"); if (t) undo(t.dataset.undo); });
+$("back").addEventListener("click", unfocus);
+$("f-msg").addEventListener("click", () => { cue = S.focus; $("to").innerHTML = `${glyphSVG(BIRDS[cue])}${BIRDS[cue].name}`; $("to").hidden = false; inp.value = ""; inp.focus(); syncBar(); });
+$("f-pause").addEventListener("click", () => { const id = BIRDS[S.focus].id; setPaused(id, !S.paused[id]); showReply(null, `${S.paused[id] ? "Paused" : "Resumed"} ${B(id).name}.`); });
+$("f-undo").addEventListener("click", () => { const id = BIRDS[S.focus].id; const last = [...S.events].reverse().find(e => e.bird === id && e.undo && !S.undone.has(e.id) && e.kind !== "undo"); if (last) undo(last.id); });
+
+// waiting sheet
+const sheet = $("sheet");
+function waitText(ev) {
+  if (ev.topic === "swift.report.ready") return { p: "Swift's night report: two merged, one held.", s: `${hm(ev.t)} · Amber`, a: [["Open Swift", "open"], ["Done", "done"]] };
+  if (ev.topic === "crow.pitch.made") return { p: `Crow's idea: ${ev.data.headline}.`, s: `${hm(ev.t)}${S.answered[ev.id] === "later" ? " · You said later" : ""}`, a: [["Build it", "build"], ["Later", "later"], ["No", "no"]] };
+  if (ev.topic === "peacock.kit.ready") return { p: `Peacock's post kit: ${ev.data.title}.`, s: `${hm(ev.t)} · Ready to post`, a: [["Open Peacock", "open"], ["Done", "done"]] };
+  return { p: ev.summary, s: hm(ev.t), a: [["Done", "done"]] };
+}
+function renderSheet() {
+  const items = S.waiting.map(id => S.byId[id]).filter(Boolean);
+  sheet.innerHTML = items.length ? items.map(ev => { const w = waitText(ev); return `<div class="w"><p><span style="display:inline-block;width:18px;height:18px;vertical-align:-3px;margin-right:8px">${glyphSVG(B(ev.bird))}</span>${esc(w.p)}</p><small class="num">${esc(w.s)}</small><div class="a">${w.a.map(([l, k]) => `<button class="link" data-w="${ev.id}:${k}">${l}</button>`).join("")}</div></div>`; }).join("") : `<p class="empty">Nothing needs you.</p>`;
+}
+$("sub").addEventListener("click", e => { if (e.target.closest(".att")) { const n = document.querySelector(".needs"); n.animate([{ boxShadow: "0 0 0 0 rgba(203,109,77,0.0)" }, { boxShadow: "0 0 0 3px rgba(203,109,77,0.55)" }, { boxShadow: "0 0 0 0 rgba(203,109,77,0.0)" }], { duration: 900, easing: "ease-out" }); } });
+$("waiting-btn").addEventListener("click", () => { sheet.hidden = !sheet.hidden; $("waiting-btn").setAttribute("aria-expanded", String(!sheet.hidden)); if (!sheet.hidden) renderSheet(); });
+function onWait(e) {
+  const t = e.target.closest("[data-w]"); if (!t) return;
+  const [id, k] = t.dataset.w.split(":"), ev = S.byId[id];
+  if (k === "open") { focusBird(BI[ev.bird]); sheet.hidden = true; return; }
+  if (k === "done") { S.waiting = S.waiting.filter(x => x !== id); }
+  else { emit("crow", "signal", "crow.pitch.answered", `Crow heard back: ${k}`, { cause: id, data: { pitch: id, answer: k } });
+    reply("crow", k === "build" ? "Good. It's in Swift's queue; it'll come back as small tasks with tests." : k === "later" ? "I'll bring it back when the pattern shows up again." : "Dropped. I won't pitch it again."); }
+  ui.dirty = true; renderSheet();
+}
+sheet.addEventListener("click", onWait); $("needs").addEventListener("click", onWait);
+
+// command bar
+const inp = $("cmd-in");
+function detectTarget() {
+  const m = inp.value.match(/^@?([a-z]+)[,:\s]/i), w = m && m[1].toLowerCase();
+  const i = w != null && BI[w] != null ? BI[w] : null, to = $("to");
+  if (i != null) { cue = i; to.innerHTML = `${glyphSVG(BIRDS[i])}${BIRDS[i].name}`; to.hidden = false; inp.value = inp.value.replace(/^@?[a-z]+[,:]?\s*/i, ""); }
+}
+inp.addEventListener("input", () => { detectTarget(); syncBar(); });
+// the jewels: pick who you're talking to; the one addressed stays lit
+const whoEl = $("who"), ph = $("ph");
+const whoBtns = BIRDS.map((b, i) => { const el = document.createElement("button"); el.type = "button"; el.innerHTML = tileSVG(b, ""); el.setAttribute("aria-label", `Talk to ${b.name}`); el.title = b.name; el.addEventListener("click", () => { if (cue === i) { cue = null; $("to").hidden = true; } else { cue = i; $("to").innerHTML = `${glyphSVG(b)}${b.name}`; $("to").hidden = false; } inp.focus(); syncBar(); }); el.addEventListener("pointerenter", () => { hover = i; }); el.addEventListener("pointerleave", () => { hover = null; }); whoEl.appendChild(el); return el; });
+let shownCue = undefined;
+function syncBar() {
+  $("field").classList.toggle("typed", inp.value.length > 0);
+  $("cmd").classList.toggle("has", inp.value.trim().length > 0);
+  whoEl.classList.toggle("picked", cue != null);
+  if (cue != null) $("to").style.setProperty("--c", BIRDS[cue].color);
+  whoBtns.forEach((el, i) => { el.classList.toggle("on", cue === i); el.setAttribute("aria-pressed", String(cue === i)); });
+  if (shownCue !== cue) { shownCue = cue; swapPH(cue != null ? `What should ${BIRDS[cue].name} do?` : PH[phI]); }
+}
+function swapPH(text) {
+  if (REDUCED || ph.textContent === text) { ph.textContent = text; return; }
+  ph.classList.add("out");
+  setTimeout(() => { ph.textContent = text; ph.classList.remove("out"); ph.classList.add("pre"); void ph.offsetWidth; ph.classList.remove("pre"); }, 260);
+}
+inp.addEventListener("keydown", e => { if (e.key === "Backspace" && !inp.value && cue != null) { cue = null; $("to").hidden = true; syncBar(); } });
+const PH = ["Tell any bird what to do", "Swift, build N1-15", "Wren, tidy Downloads", "Everyone, focus for 2 hours", "Magpie, what did Swift do?"]; let phI = 0;
+setInterval(() => { if (document.activeElement !== inp && !inp.value && cue == null) { phI = (phI + 1) % PH.length; swapPH(PH[phI]); } }, 4200);
+$("cmd").addEventListener("submit", e => { e.preventDefault(); if (!inp.value.trim()) { inp.focus(); return; } const v = (cue != null ? BIRDS[cue].id + ", " : "") + inp.value; inp.value = ""; cue = null; $("to").hidden = true; syncBar(); handle(v); });
+["Wren, tidy Downloads", "Swift, build N1-15", "Magpie, what did Swift do?"].forEach(x => {
+  const b = document.createElement("button"); b.type = "button"; b.textContent = x;
+  b.addEventListener("click", () => { inp.value = x; detectTarget(); inp.focus(); syncBar(); }); $("suggest").appendChild(b);
+});
+addEventListener("keydown", e => {
+  if (e.target === inp) { if (e.key === "Escape") inp.blur(); return; }
+  if (e.key === "/") { e.preventDefault(); inp.focus(); }
+  else if (e.key === "Escape") { if (!sheet.hidden) sheet.hidden = true; else unfocus(); }
+  else if (/^[1-6]$/.test(e.key)) focusBird(+e.key - 1);
+  else if (e.key === "ArrowRight" || e.key === "ArrowLeft") focusBird(((S.focus ?? -1) + (e.key === "ArrowRight" ? 1 : 5) + (S.focus == null && e.key === "ArrowLeft" ? 1 : 0)) % 6);
+});
+
+// ───────────────────────── loop
+let clock = 0, last = performance.now();
+while (queue.length && queue[0].t <= START) apply(queue.shift(), false);
+layout(true); restView(); cam.pos.copy(cam.tPos).multiplyScalar(REDUCED ? 1 : 1.22); cam.pos.y += REDUCED ? 0 : 1.2; cam.look.copy(cam.tLook); camera.position.copy(cam.pos);
+const up = new THREE.Vector3(0, 1, 0), fogTint = new THREE.Color(), WHITE3 = new THREE.Color(1, 1, 1);
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now; clock += dt;
+  S.now = Math.min(1439.99, S.now + dt * SPEED / 60);
+  while (queue.length && queue[0].t <= S.now) apply(queue.shift(), true);
+  tickTasks();
+
+  // camera
+  if (S.focus == null) restView(); else focusView(S.focus);
+  pointer.sx += (pointer.x - pointer.sx) * (1 - Math.exp(-dt * 2)); pointer.sy += (pointer.y - pointer.sy) * (1 - Math.exp(-dt * 2));
+  const k = REDUCED ? 1 : 1 - Math.exp(-dt * (clock < 2.5 ? 1.1 : 2.6));
+  cam.pos.lerp(cam.tPos, k); cam.look.lerp(cam.tLook, k);
+  camera.position.copy(cam.pos);
+  if (!REDUCED) {
+    const drift = 1 - Math.min(1, flock.reduce((m, f) => Math.max(m, f.dimK), 0) * 1.2);
+    const ang = Math.sin(clock * 0.06) * 0.1 * drift, dx = camera.position.x - cam.look.x, dz = camera.position.z - cam.look.z;
+    camera.position.x = cam.look.x + dx * Math.cos(ang) + dz * Math.sin(ang); camera.position.z = cam.look.z - dx * Math.sin(ang) + dz * Math.cos(ang) - Math.sin(clock * 0.045) * 0.35 * drift;
+    camera.position.y += Math.sin(clock * 0.08 + 1) * 0.08 * drift;
+    camera.position.x += pointer.sx * 0.35; camera.position.y += pointer.sy * 0.15;
+  }
+  camera.lookAt(cam.look);
+  { const d = camera.position.distanceTo(cam.look); scene.fog.near = d + 3; scene.fog.far = d + 24; }
+  tintGoal.copy(lin(MODE_TINT[S.mode.label] || "#5a5a66"));
+  if (S.focus != null) tintGoal.lerp(flock[S.focus].col, 0.6);
+  tintGoal.lerp(fogTint.setScalar(tintGoal.r * 0.3 + tintGoal.g * 0.59 + tintGoal.b * 0.11), 0.3);
+  TINT.lerp(tintGoal.multiplyScalar(0.07), REDUCED ? 1 : 1 - Math.exp(-dt * 1.5));
+  scene.fog.color.copy(BG).add(fogTint.copy(TINT).multiplyScalar(1.1));
+
+  // the sweep: 6 s across, then a pause
+  { const per = 11, tt = (clock - 3) % per, k2 = tt / 6, on = clock > 3 && tt < 6 && !REDUCED && S.focus == null;
+    const x = -11 + 22 * (k2 * k2 * (3 - 2 * k2)); sweep.position.x = x; sweep.target.position.x = x * 0.92;
+    sweep.intensity = on ? Math.sin(Math.PI * k2) * 9 : 0; }
+  spot.intensity = 1.5 * (REDUCED ? 1 : Math.min(1, clock / 1.8));
+  // the light follows the chosen bird
+  { const tx = S.focus != null ? flock[S.focus].base.x : 0, kk = REDUCED ? 1 : 1 - Math.exp(-dt * 2.2); spot.position.x += (tx - spot.position.x) * kk; spot.target.position.x = spot.position.x; spot.angle += ((S.focus != null ? 0.32 : 0.5) - spot.angle) * kk; }
+  // birds
+  rankFlock();
+  flock.forEach(f => { const portrait = innerWidth / innerHeight < 0.9; if (portrait) f.target.set((f.rank % 3 - 1) * 1.62, 0, f.rank < 3 ? 1.2 : -2.3); else f.target.set(...V_SLOTS[f.rank]); f.base.lerp(f.target, REDUCED ? 1 : 1 - Math.exp(-dt * 0.9)); });
+  flock.forEach((f, i) => {
+    const st = statusOf(f.b.id), focused = S.focus === i, hov = hover === i;
+    f.pauseK += ((st === "paused" ? 1 : 0) - f.pauseK) * (1 - Math.exp(-dt * 3));
+    f.look += ((focused || hov || cue === i ? 1 : 0) - f.look) * (1 - Math.exp(-dt * 4));
+    f.dimK += ((S.focus != null && !focused ? 1 : 0) - f.dimK) * (1 - Math.exp(-dt * 3));
+    const ek = REDUCED ? 1 : Math.max(0, Math.min(1, (clock - 0.6 - i * 0.13) / 1.1)), enter = 0, pop = REDUCED ? 1 : Math.max(0.001, 1 + 2.70158 * Math.pow(ek - 1, 3) + 1.70158 * Math.pow(ek - 1, 2)), introSpin = REDUCED ? 0 : (1 - ease(ek)) * -Math.PI;
+    const hk = (clock - f.hop) / (f.hopSmall ? 0.5 : 0.75);
+    const hop = hk >= 0 && hk < 1 ? Math.sin(Math.PI * hk) * (f.hopSmall ? 0.08 : 0.2) : 0;
+    const spin = hk >= 0 && hk < 1 && !f.hopSmall ? ease(hk) * Math.PI * 2 : 0;
+    const idle = REDUCED ? 0 : Math.sin(clock * 0.9 + f.phase) * 0.025;
+    const lift = 0.16 - f.pauseK * 0.12;
+    const wing = REDUCED ? 0 : Math.sin(clock * 1.25 - f.rank * 0.75);
+    const hy = lift + idle + hop + f.look * 0.12 + wing * 0.07;
+    const aside = S.focus != null ? Math.sign(i - S.focus) * (4.2 + Math.abs(i - S.focus) * 0.6) * f.dimK : 0, shrink = 1 - 0.35 * f.dimK;
+    f.holder.scale.setScalar(shrink * pop * (1 + f.look * 0.06));
+    f.holder.position.set(f.base.x + aside, (-f.s.userData.minY * SC + hy) * shrink + f.base.y + enter, f.base.z - 1.8 * f.dimK);
+    f.refl.scale.copy(f.holder.scale);
+    f.s.children[1].position.z = f.refl.children[0].children[1].position.z = GLYPH_Z + f.look * 0.1;
+    f.glow.position.set(f.holder.position.x, f.holder.position.y - SC * 1.15, f.holder.position.z + 0.3);
+    f.glow.intensity = (0.8 + f.look * 0.7 + (st === "working" ? 0.6 : 0)) * (1 - f.pauseK * 0.6) * (1 - f.dimK) * ek;
+    const ht = hy + f.base.y; f.blob.position.set(f.holder.position.x, 0.003, f.holder.position.z);
+    f.blob.material.opacity = 0.7 * Math.exp(-ht * 2.2) * (1 - f.dimK * 0.85) * Math.max(0, Math.min(1, ek * 1.4)); f.blob.scale.setScalar(1 + ht * 0.9);
+    f.track.position.set(f.base.x, 0.004, f.base.z); f.arc.position.set(f.base.x, 0.005, f.base.z);
+    const sway = REDUCED ? 0 : Math.sin(clock * 0.26 + f.phase) * 0.18;
+    const toCam = Math.atan2(camera.position.x - f.base.x, camera.position.z - f.base.z);
+    f.holder.rotation.y = THREE.MathUtils.lerp(sway + (REDUCED ? 0 : pointer.sx * 0.3), toCam + (focused && !REDUCED ? Math.sin(clock * 0.45) * 0.5 : 0), f.look) + spin + introSpin;
+    f.holder.rotation.x = REDUCED ? 0 : (-pointer.sy * 0.16 + Math.sin(clock * 0.6 + f.phase) * 0.04) * (1 - f.dimK);
+    f.holder.rotation.z = REDUCED ? 0 : Math.sin(clock * 1.25 - f.rank * 0.75 + 0.9) * 0.07 * (1 - f.look) * (1 - f.dimK);
+    f.mat.color.copy(f.col).lerp(GREY, f.pauseK * 0.8).multiplyScalar(1 - f.dimK * 0.92);
+    f.gmat.emissiveIntensity = (st === "working" ? 0.1 + (REDUCED ? 0 : 0.06 * Math.sin(clock * 2.2 + f.phase)) : 0) * (1 - f.dimK);
+    f.refl.position.copy(f.holder.position); f.refl.rotation.copy(f.holder.rotation);
+    const p = st === "paused" ? null : progressOf(f.b.id);
+    setArc(f, p ? p.frac : 0);
+    f.track.material.opacity = f.look * (S.focus == null ? 0.14 : 0) * ek;
+    f.arc.material.opacity = 0.95 * f.look * (S.focus == null ? 1 : 0) * ek; f.tip.material.opacity = f.arc.material.opacity;
+  });
+
+  ui.slow += dt;
+  placeTags();
+  if (ui.dirty || ui.slow > 0.25) { renderTags(); renderBrief(); renderFocus(); if (!sheet.hidden && ui.dirty) renderSheet(); ui.dirty = false; ui.slow = 0; }
+  {
+    const lead = flock.find(f => f.rank === 0), foc = S.focus != null ? flock[S.focus] : lead;
+    const fd = camera.position.distanceTo(foc.holder.position); dof.uniforms.focus.value += (fd - dof.uniforms.focus.value) * (1 - Math.exp(-dt * 4)); }
+  finish.uniforms.uT.value = clock;
+  composer.render(dt);
+  requestAnimationFrame(frame);
+}
+addEventListener("resize", () => { layout(true); renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); finish.uniforms.uRes.value.set(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); layout(); });
+document.addEventListener("visibilitychange", () => { last = performance.now(); });
+requestAnimationFrame(frame);
+</script>

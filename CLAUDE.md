@@ -13,7 +13,8 @@ Read what the task needs; don't read everything every time.
 | `docs/nest-app.md` | The Nest app: screens, ways in, how it's built | Working on the app |
 | `docs/event-bus.md` | The event contract every bird and the app speak | Anything touching events (N1-13 onward) |
 | `docs/magpie-format.md` | Memory: vault layout, note format, lessons, forgetting | Anything touching memory (Phase 4) |
-| `docs/design-status.md` | What's settled and what isn't about the look | Before any UI work |
+| `docs/design-status.md` | The approved look: the scene, the interface, what was rejected | Before any UI work |
+| `design/reference/` | The approved Home prototype (`home.html`) and a still (`home.png`) | Building any component or screen |
 | `docs/house-rules.md` | What Swift checks before merging; plan mode for Crow's ideas | Phase 2, or before merging |
 | `docs/birds/<bird>.md` | Each bird's spec: job, powers, how it's built, decisions | Building that bird |
 | `docs/minds/README.md`, `docs/minds/<bird>.md` | Each bird's prompt, allowed actions, voice and examples | Building that bird's brain or chat |
@@ -24,8 +25,9 @@ If these docs disagree, `CLAUDE.md` wins, then `docs/queue.md`, then the rest.
 
 ## Right now
 
-- The look is not final (see `docs/design-status.md`). Build only the tasks that don't depend on it: N1-01, N1-02, N1-04, N1-05, N1-13 to N1-16, and the pet brain PB-01 to PB-06 (no UI; spec `docs/superpowers/specs/2026-11-11-pet-mode-design.md`, plan `docs/superpowers/plans/2026-11-11-pet-brain.md`). If asked to build fonts (N1-03), a component or a screen (N1-06 to N1-12, N1-17 onward), stop and say the look is on hold.
-- Order: N1-01, N1-02, N1-04, N1-05, N1-13, N1-14, N1-15, N1-16, PB-01, PB-02, PB-03, PB-04, PB-05, PB-06.
+- The look is final (approved 2026-11-12). Read `docs/design-status.md` before any UI work, and match the approved prototype `design/reference/home.html`. Every value still comes from `design/tokens.json`.
+- Done: N1-01, N1-02, N1-04, N1-05, N1-13 to N1-16 and PB-01 to PB-06.
+- Order: N1-03, N1-06, N1-07, N1-08, N1-09, N1-10, N1-11, N1-12, N1-17, N1-18, N1-19, N1-20, N1-21, N1-22, N1-23, N1-24.
 - `docs/event-bus.md` is the contract for events. Code against it exactly.
 
 ## How a task runs

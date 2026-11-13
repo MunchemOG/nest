@@ -2,7 +2,7 @@
 
 One task is one Claude Code session. Start each on its own branch (`task/<id>`). A task is done only when its "done means" test passes along with the whole suite.
 
-**Building now:** N1-01, N1-02, N1-04, N1-05, N1-13 to N1-16, and PB-01 to PB-06. **On hold until the look is final:** N1-03 (fonts may change), N1-06 to N1-12 and N1-17 onward.
+**Done:** N1-01, N1-02, N1-04, N1-05, N1-13 to N1-16, and PB-01 to PB-06. **Building now:** N1-03, N1-06 to N1-12 and N1-17 onward; the look is final (`docs/design-status.md`).
 
 ## Phase 1 — App shell
 
@@ -38,7 +38,7 @@ One task is one Claude Code session. Start each on its own branch (`task/<id>`).
 | PB-05 | `PetBrain` pointer reactions | A fast pointer makes Swift flee and leaves Owl; each bird's hover reaction matches the spec | PB-04 |
 | PB-06 | `PetDirector`: one tick from world to intents | A simulated two-hour session replays identically per seed and keeps every rule | PB-05 |
 
-### On hold: components (wait for the final look)
+### Components
 
 | id | goal | done_means | needs |
 | --- | --- | --- | --- |
@@ -50,7 +50,7 @@ One task is one Claude Code session. Start each on its own branch (`task/<id>`).
 | N1-11 | Chat bubble, typing dots and composer | Snapshots for bird, you, typing | N1-08 |
 | N1-12 | A component gallery from a debug menu | A UI test finds each component by its accessibility id | N1-06 – N1-11 |
 
-### On hold: screens (wait for the final look)
+### Screens
 
 | id | goal | done_means | needs |
 | --- | --- | --- | --- |
