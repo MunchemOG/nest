@@ -6,6 +6,7 @@ struct StatusDot: View {
     let color: NestColor
     let rest: NestColor
     let breathes: Bool
+    var diameter: Double = NestSpace.s2
 
     var body: some View {
         if breathes {
@@ -22,6 +23,6 @@ struct StatusDot: View {
     private func dot(_ fill: NestColor) -> some View {
         Circle()
             .fill(Color(fill))
-            .frame(width: NestSpace.s2, height: NestSpace.s2)
+            .frame(width: diameter, height: diameter)
     }
 }
