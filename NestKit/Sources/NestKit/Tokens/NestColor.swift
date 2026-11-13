@@ -32,7 +32,7 @@ public struct NestColor: Hashable, Sendable {
         )
     }
 
-    /// Page background.
+    /// Page background behind any 2D view.
     public static let surface0 = NestColor(rgb: 0x0c0c0d)
     /// Cards and sections on `surface0`.
     public static let surface1 = NestColor(rgb: 0x141416)
@@ -108,8 +108,22 @@ public struct NestColor: Hashable, Sendable {
     public static let flockMagpieTint = NestColor(rgba: 0xd47a9324)
     /// A 14% wash of Peacock's colour.
     public static let flockPeacockTint = NestColor(rgba: 0xc27bb824)
-    /// Fill for floating panels, always over a glass blur.
-    public static let glass = NestColor(rgba: 0x1c1c1fb3)
+    /// Smoked glass for every floating panel over the scene.
+    public static let glass = NestColor(rgba: 0x16161b8f)
+    /// The command bar's slightly lighter glass.
+    public static let glassBar = NestColor(rgba: 0x1e1e2399)
+    /// The glyph on a bird tile.
+    public static let glyphInk = NestColor(rgb: 0x0c0c0d)
+    /// The dark of the 3D studio behind the flock.
+    public static let sceneVoid = NestColor(rgb: 0x09090b)
+    /// The lacquered studio floor.
+    public static let sceneFloor = NestColor(rgb: 0x0b0b0d)
+    /// Wall light tint in Morning mode.
+    public static let modeMorning = NestColor(rgb: 0xc88a5c)
+    /// Wall light tint in Focus mode.
+    public static let modeFocus = NestColor(rgb: 0x5a64c8)
+    /// Wall light tint in Night mode.
+    public static let modeNight = NestColor(rgb: 0x3a5aa8)
 
     /// Every colour token, by its name in `tokens.json`.
     public static let all: [String: NestColor] = [
@@ -152,5 +166,12 @@ public struct NestColor: Hashable, Sendable {
         "flock-magpie-tint": flockMagpieTint,
         "flock-peacock-tint": flockPeacockTint,
         "glass": glass,
+        "glass-bar": glassBar,
+        "glyph-ink": glyphInk,
+        "scene-void": sceneVoid,
+        "scene-floor": sceneFloor,
+        "mode-morning": modeMorning,
+        "mode-focus": modeFocus,
+        "mode-night": modeNight,
     ]
 }

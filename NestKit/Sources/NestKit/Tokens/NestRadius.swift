@@ -1,14 +1,16 @@
 /// Corner radius tokens from `design/tokens.json`, in points.
 public enum NestRadius {
-    /// Tags, status pills, small chips.
-    public static let sm: Double = 4
-    /// Buttons, inputs, menu items, thumbnails.
-    public static let md: Double = 6
-    /// Cards, chat bubbles, popovers, media frames.
-    public static let lg: Double = 10
-    /// Windows, sheets and large panels.
-    public static let xl: Double = 14
-    /// Circles only: bird avatars, status dots, toggles.
+    /// Mini bird icons, key caps, small chips.
+    public static let sm: Double = 8
+    /// Rail buttons, list rows on hover, menu items.
+    public static let md: Double = 12
+    /// Cards inside a panel.
+    public static let lg: Double = 14
+    /// Glass panels and sheets.
+    public static let xl: Double = 20
+    /// A bird tile at 100 points; scale with the tile.
+    public static let tile: Double = 24
+    /// Pills and circles.
     public static let full: Double = 9999
 
     /// Every radius token, by its name in `tokens.json`.
@@ -17,6 +19,7 @@ public enum NestRadius {
         "radius-md": md,
         "radius-lg": lg,
         "radius-xl": xl,
+        "radius-tile": tile,
         "radius-full": full,
     ]
 }

@@ -40,11 +40,23 @@ public struct NestShadow: Hashable, Sendable {
         Layer(x: 0, y: 1, blur: 2, color: NestColor(rgba: 0x00000066)),
         Layer(x: 0, y: 8, blur: 24, color: NestColor(rgba: 0x00000059)),
     ])
-    /// Hovered or selected cards: a warm clay glow.
-    public static let glow = NestShadow(layers: [
-        Layer(inset: true, x: 0, y: 1, blur: 0, color: NestColor(rgba: 0xffffff14)),
-        Layer(x: 0, y: 0, blur: 0, spread: 0.5, color: NestColor(rgba: 0xcb6d4d66)),
-        Layer(x: 0, y: 16, blur: 48, color: NestColor(rgba: 0xcb6d4d2e)),
+    /// Glass panels floating over the scene.
+    public static let panel = NestShadow(layers: [
+        Layer(inset: true, x: 0, y: 1, blur: 0, color: NestColor(rgba: 0xffffff0f)),
+        Layer(x: 0, y: 1, blur: 2, color: NestColor(rgba: 0x0000004d)),
+        Layer(x: 0, y: 24, blur: 48, spread: -20, color: NestColor(rgba: 0x000000bf)),
+    ])
+    /// The command bar: lit top edge, darker lower lip, deepest drop.
+    public static let bar = NestShadow(layers: [
+        Layer(inset: true, x: 0, y: 1, blur: 0, color: NestColor(rgba: 0xffffff12)),
+        Layer(inset: true, x: 0, y: -1, blur: 0, color: NestColor(rgba: 0x00000059)),
+        Layer(x: 0, y: 2, blur: 6, color: NestColor(rgba: 0x00000059)),
+        Layer(x: 0, y: 28, blur: 60, spread: -24, color: NestColor(rgba: 0x000000d9)),
+    ])
+    /// Mini bird icons, so they read as small tiles.
+    public static let icon = NestShadow(layers: [
+        Layer(inset: true, x: 0, y: 1, blur: 0, color: NestColor(rgba: 0xffffff2e)),
+        Layer(x: 0, y: 4, blur: 10, spread: -4, color: NestColor(rgba: 0x00000099)),
     ])
     /// Floating panels on glass.
     public static let popover = NestShadow(layers: [
@@ -57,37 +69,14 @@ public struct NestShadow: Hashable, Sendable {
         Layer(x: 0, y: 0, blur: 0, spread: 4, color: NestColor(rgb: 0xcb6d4d)),
         Layer(x: 0, y: 0, blur: 20, color: NestColor(rgba: 0xcb6d4d59)),
     ])
-    /// Wren's avatar while it is active or speaking.
-    public static let glowWren = birdGlow(NestColor(rgba: 0xd2ae8a66))
-    /// Swift's avatar while it is active or speaking.
-    public static let glowSwift = birdGlow(NestColor(rgba: 0x6e9bd366))
-    /// Crow's avatar while it is active or speaking.
-    public static let glowCrow = birdGlow(NestColor(rgba: 0x8e86d666))
-    /// Owl's avatar while it is active or speaking.
-    public static let glowOwl = birdGlow(NestColor(rgba: 0xd4a95466))
-    /// Magpie's avatar while it is active or speaking.
-    public static let glowMagpie = birdGlow(NestColor(rgba: 0xd47a9366))
-    /// Peacock's avatar while it is active or speaking.
-    public static let glowPeacock = birdGlow(NestColor(rgba: 0xc27bb866))
 
     /// Every shadow token, by its name in `tokens.json`.
     public static let all: [String: NestShadow] = [
         "shadow-rest": rest,
-        "shadow-glow": glow,
+        "shadow-panel": panel,
+        "shadow-bar": bar,
+        "shadow-icon": icon,
         "shadow-popover": popover,
         "shadow-focus": focus,
-        "glow-wren": glowWren,
-        "glow-swift": glowSwift,
-        "glow-crow": glowCrow,
-        "glow-owl": glowOwl,
-        "glow-magpie": glowMagpie,
-        "glow-peacock": glowPeacock,
     ]
-
-    private static func birdGlow(_ color: NestColor) -> NestShadow {
-        NestShadow(layers: [
-            Layer(x: 0, y: 0, blur: 0, spread: 2, color: NestColor(rgb: 0x0c0c0d)),
-            Layer(x: 0, y: 0, blur: 16, color: color),
-        ])
-    }
 }
