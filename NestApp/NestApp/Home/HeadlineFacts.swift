@@ -1,0 +1,45 @@
+import NestKit
+
+/// The few facts the Home headline is made from, kept up to date event by event.
+struct HeadlineFacts: Hashable, Sendable {
+    /// The task Swift is building in its current run, if a run is going.
+    private(set) var building: String?
+    /// When Focus mode ends, while it is on.
+    private(set) var focusUntil: String?
+    /// Whether you are in flow.
+    private(set) var inFlow = false
+    /// Where you are: `here`, `away`, `stranger` or `guest`.
+    private(set) var presence: String?
+
+    private var runTasks: [String] = []
+
+    mutating func apply(_ event: NestEvent) {
+        switch event.topic {
+        case .swiftRunStarted:
+            runTasks = event.data["tasks"]?.strings ?? []
+            building = runTasks.first
+        case .swiftRunFinished:
+            runTasks = []
+            building = nil
+        case .swiftTaskMerged, .swiftTaskHeld, .swiftTaskFailed:
+            guard let task = event.data["task"]?.string, let index = runTasks.firstIndex(of: task) else { return }
+            building = runTasks.indices.contains(index + 1) ? runTasks[index + 1] : nil
+        case .wrenModeChanged:
+            let isFocus = event.data["to"]?.string == "Focus"
+            focusUntil = isFocus ? event.data["settings"]?.object?["until"]?.string : nil
+        case .owlFlowChanged:
+            inFlow = event.data["to"]?.bool ?? false
+        case .owlPresenceChanged:
+            presence = event.data["to"]?.string
+        default:
+            break
+        }
+    }
+}
+
+extension JSONValue {
+    var string: String? { if case .string(let value) = self { value } else { nil } }
+    var bool: Bool? { if case .bool(let value) = self { value } else { nil } }
+    var object: [String: JSONValue]? { if case .object(let value) = self { value } else { nil } }
+    var strings: [String]? { if case .array(let values) = self { values.compactMap(\.string) } else { nil } }
+}

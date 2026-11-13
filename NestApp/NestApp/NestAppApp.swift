@@ -23,6 +23,7 @@ struct NestAppApp: App {
         WindowGroup {
             ContentView()
         }
+        .defaultSize(width: NestSpace.s10 * 10, height: NestSpace.s10 * 7)
         .commands {
             CommandMenu("Go") { GoMenuItems() }
         }
