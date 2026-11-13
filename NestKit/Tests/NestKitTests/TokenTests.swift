@@ -2,10 +2,9 @@ import Testing
 @testable import NestKit
 
 struct TokenTests {
-    /// Top-level groups of `tokens.json` that are not turned into Swift values:
-    /// `effect` has no Swift type named yet.
-    static let groupsNotInSwift: Set<String> = ["name", "version", "effect"]
-    static let groupsInSwift: Set<String> = ["color", "spacing", "radius", "shadow", "duration", "easing", "type"]
+    /// Top-level groups of `tokens.json` that are not turned into Swift values.
+    static let groupsNotInSwift: Set<String> = ["name", "version"]
+    static let groupsInSwift: Set<String> = ["color", "spacing", "radius", "shadow", "duration", "easing", "type", "effect"]
 
     @Test func everyTokenGroupIsCoveredOrKnowinglyLeftOut() throws {
         #expect(try TokenFile.topLevelKeys() == Self.groupsInSwift.union(Self.groupsNotInSwift))
@@ -66,6 +65,14 @@ struct TokenTests {
         for token in tokens {
             #expect(NestMotion.curves[token.name] == (try CSSValue.curve(token.value)), "\(token.name)")
         }
+    }
+
+    @Test func everyEffectTokenHasAnEqualSwiftValue() throws {
+        let tokens = try TokenFile.load().effect.tokens
+        let byName = Dictionary(uniqueKeysWithValues: tokens.map { ($0.name, $0.value) })
+        #expect(Set(byName.keys) == ["blur-glass", "lift-hover"])
+        #expect(NestEffect.blurGlass == (try CSSValue.blur(try #require(byName["blur-glass"]))))
+        #expect(NestEffect.liftHover == (try CSSValue.length(try #require(byName["lift-hover"]))))
     }
 
     @Test func hexColoursSplitIntoChannels() {
