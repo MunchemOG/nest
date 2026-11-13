@@ -49,6 +49,18 @@ public enum Bird: String, CaseIterable, Hashable, Sendable {
         }
     }
 
+    /// A 14% wash of the bird's colour, for its bubbles, tags and resting glow.
+    public var tint: NestColor {
+        switch self {
+        case .wren: .flockWrenTint
+        case .swift: .flockSwiftTint
+        case .crow: .flockCrowTint
+        case .owl: .flockOwlTint
+        case .magpie: .flockMagpieTint
+        case .peacock: .flockPeacockTint
+        }
+    }
+
     /// The bird's glyph assets.
     public var glyph: Glyph {
         Glyph(base: rawValue)
