@@ -80,9 +80,18 @@ struct HomeControlsTests {
         #expect(DemoReplayStart.split(events, at: nil, in: Self.chicago).past.isEmpty)
     }
 
-    @Test func theWallTakesTheModesColour() {
-        #expect(ModeTint.colour(for: "Morning") == .modeMorning)
-        #expect(ModeTint.colour(for: "Focus") == .modeFocus)
-        #expect(ModeTint.colour(for: "Night") == .modeNight)
+    @Test func theStudioGetsThePrototypesStatuses() throws {
+        let model = HomeModel()
+        let events = try DemoDay.events()
+        let (past, _) = DemoReplayStart.split(events, at: "15:16", in: Self.chicago)
+        past.forEach(model.receive)
+        let state = model.studioState
+        #expect(state.statuses["wren"] == "working")
+        #expect(state.statuses["crow"] == "paused")
+        #expect(state.statuses["owl"] == "idle")
+        #expect(state.tagLines["crow"] == "Paused for Focus")
+        #expect(state.mode == "Focus")
+        #expect(state.until == "15:30")
+        #expect(state.script.contains("\"until\":\"15:30\""))
     }
 }

@@ -47,26 +47,51 @@ final class HomeModel {
     /// The statement at the top of Home.
     var headline: Headline { Headline(facts: facts, waiting: needsYou.count, now: now) }
 
-    /// The short line under a bird's tile in the scene, from what the app knows about it.
+    /// The short line under a bird's tile in the studio, by the prototype's rules.
     func tagLine(for bird: Bird) -> String {
-        let status = flock.status(of: bird)
-        if status == .paused { return facts.mode == "Focus" ? "Paused for Focus" : "Paused" }
+        if flock.status(of: bird) == .paused { return bird == .crow && facts.mode == "Focus" ? "Paused for Focus" : "Paused" }
         switch bird {
         case .wren:
             if let until = facts.focusUntil { return "Focus until \(until)" }
-            if let mode = facts.mode { return "\(mode) mode" }
-        case .owl:
-            if facts.inFlow, let since = facts.flowSince, let now { return "In flow \(Headline.duration(now.timeIntervalSince(since)))" }
-            if facts.presence == "away" { return "You're away" }
+            return "\(facts.mode ?? "Night") mode"
         case .swift:
-            if let task = facts.building { return "Building \(task)" }
+            return facts.building.map { "Building \($0)" } ?? "Idle"
+        case .crow:
+            return "Watching"
+        case .owl:
+            if facts.presence == "away" { return "You're away" }
+            if facts.presence == "guest" { return "Guest present" }
+            if facts.inFlow, let since = facts.flowSince, let now { return "In flow \(Headline.duration(now.timeIntervalSince(since)))" }
+            return "At the desk"
         case .magpie:
-            let notes = events.filter { $0.sender == .bird(.magpie) && $0.kind == .note }.count
-            if notes > 0 { return notes == 1 ? "1 note today" : "\(notes) notes today" }
-        case .crow, .peacock:
-            break
+            return "\(events.filter { $0.sender == .bird(.magpie) }.count) notes today"
+        case .peacock:
+            return needsYou.contains { $0.topic == .peacockKitReady } ? "Kit ready" : "Watching"
         }
-        return StatusPillKind.bird(bird, status).word
+    }
+
+    /// Whether a bird is working, idle or paused, by the prototype's rules: Swift during a run, Wren during Focus.
+    func studioStatus(of bird: Bird) -> String {
+        if flock.status(of: bird) == .paused { return "paused" }
+        if bird == .swift, facts.building != nil { return "working" }
+        if bird == .wren, facts.focusUntil != nil { return "working" }
+        return "idle"
+    }
+
+    /// Everything the 3D studio needs, right now.
+    var studioState: StudioState {
+        var state = StudioState()
+        for bird in Bird.allCases {
+            state.statuses[bird.rawValue] = studioStatus(of: bird)
+            state.tagLines[bird.rawValue] = tagLine(for: bird)
+        }
+        if let until = facts.focusUntil, let since = facts.modeSince, let now,
+           let progress = FocusProgress(since: since, until: until, now: now, timeZone: .current) {
+            state.progress[Bird.wren.rawValue] = progress.fraction
+        }
+        state.mode = facts.mode ?? "Night"
+        state.until = facts.focusUntil
+        return state
     }
 
     /// Applies one event.

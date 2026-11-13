@@ -6,11 +6,10 @@ import SwiftUI
 struct AppFrame: View {
     @State private var screen = NestScreen.home
     @State private var home = HomeModel()
-    @State private var tags = SceneTags()
 
-    /// Every bird's status right now, for the scene.
-    private var statuses: [Bird: BirdStatus] {
-        Dictionary(uniqueKeysWithValues: Bird.allCases.map { ($0, home.flock.status(of: $0)) })
+    /// Each bird's newest action, for the studio's hop.
+    private var latestActions: [Bird: NestEvent] {
+        Dictionary(uniqueKeysWithValues: Bird.allCases.compactMap { bird in home.flock.state[bird].latestAction.map { (bird, $0) } })
     }
 
     /// How fast the demo day replays until the birds exist: 60 plays a minute each second.
@@ -23,10 +22,9 @@ struct AppFrame: View {
         ZStack(alignment: .leading) {
             Color(NestColor.sceneVoid).ignoresSafeArea()
             if screen == .home {
-                FlockScene(statuses: statuses, mode: home.facts.mode, tags: tags)
+                StudioView(state: home.studioState, latestActions: latestActions)
                     .ignoresSafeArea()
                     .accessibilityHidden(true)
-                    .overlay { FlockTags(tags: tags, statuses: statuses, line: home.tagLine) }
                     .transition(.opacity)
             }
             Group {

@@ -2,6 +2,11 @@ import CoreText
 import Foundation
 
 extension NestFont {
+    /// The bundled font files, for places that load fonts by file (such as a web view).
+    public static var bundledFontURLs: [URL] {
+        Bundle.module.urls(forResourcesWithExtension: "ttf", subdirectory: "Fonts") ?? []
+    }
+
     /// Makes the bundled font files available to this process. Safe to call more than once.
     public static func registerBundledFonts() throws {
         guard let urls = Bundle.module.urls(forResourcesWithExtension: "ttf", subdirectory: "Fonts"), !urls.isEmpty else {
