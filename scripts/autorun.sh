@@ -43,10 +43,19 @@ heavy_model() {
   if [ -n "$until" ] && [[ ! "$(date +%F)" > "$until" ]]; then echo fable; else echo opus; fi
 }
 
+# A task is merged when its branch tip reached main through a merge. A fresh branch
+# made from main sits on main's own line, so it does not count.
+is_merged() {
+  local tip
+  tip=$(git rev-parse -q --verify "task/$1") || return 1
+  git merge-base --is-ancestor "$tip" main || return 1
+  ! git rev-list --first-parent main | grep -qx "$tip"
+}
+
 pending_tasks() {
   local id
   for id in $(grep -oE '^\| [A-Z0-9]+-[0-9]+ ' docs/queue.md | awk '{ print $2 }'); do
-    git merge-base --is-ancestor "task/$id" main 2>/dev/null || echo "$id"
+    is_merged "$id" || echo "$id"
   done
 }
 
