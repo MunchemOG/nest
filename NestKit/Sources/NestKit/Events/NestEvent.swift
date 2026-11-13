@@ -23,6 +23,31 @@ public struct NestEvent: Hashable, Sendable, Decodable {
     /// How far it may reach you.
     public let attention: EventAttention
 
+    /// An event from its fields.
+    public init(
+        id: String,
+        ts: Date,
+        sender: EventSender,
+        kind: EventKind,
+        topic: EventTopic,
+        summary: String,
+        data: [String: JSONValue],
+        undo: EventUndo?,
+        causedBy: String?,
+        attention: EventAttention
+    ) {
+        self.id = id
+        self.ts = ts
+        self.sender = sender
+        self.kind = kind
+        self.topic = topic
+        self.summary = summary
+        self.data = data
+        self.undo = undo
+        self.causedBy = causedBy
+        self.attention = attention
+    }
+
     enum CodingKeys: String, CodingKey {
         case id, ts, kind, topic, summary, data, undo, attention
         case sender = "bird"
