@@ -67,7 +67,7 @@ struct FlockOverviewTests {
         #expect(BirdAvatarState(.active) == .active)
         #expect(BirdAvatarState(.paused) == .paused)
         #expect(BirdAvatarState(.resting) == .resting)
-        #expect(BirdAvatarState(.asleep) == .resting)
+        #expect(BirdAvatarState(.asleep) == .asleep)
     }
 
     @Test func theDemoDayOverviewMatchesItsSnapshot() throws {

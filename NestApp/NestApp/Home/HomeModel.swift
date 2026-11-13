@@ -45,10 +45,13 @@ final class HomeModel {
     }
 
     /// The statement at the top of Home.
-    var headline: Headline { Headline(facts: facts, waiting: needsYou.count, now: now) }
+    var headline: Headline {
+        Headline(facts: facts, waiting: needsYou.count, now: now, asleep: Bird.allCases.allSatisfy { flock.status(of: $0) == .asleep })
+    }
 
     /// The short line under a bird's tile in the studio, by the prototype's rules.
     func tagLine(for bird: Bird) -> String {
+        if flock.status(of: bird) == .asleep { return "Asleep until Phase \(bird.buildPhase)" }
         if flock.status(of: bird) == .paused { return bird == .crow && facts.mode == "Focus" ? "Paused for Focus" : "Paused" }
         switch bird {
         case .wren:
@@ -71,8 +74,9 @@ final class HomeModel {
         }
     }
 
-    /// Whether a bird is working, idle or paused, by the prototype's rules: Swift during a run, Wren during Focus.
+    /// Whether a bird is asleep, working, idle or paused, by the prototype's rules: Swift during a run, Wren during Focus.
     func studioStatus(of bird: Bird) -> String {
+        if flock.status(of: bird) == .asleep { return "asleep" }
         if flock.status(of: bird) == .paused { return "paused" }
         if bird == .swift, facts.building != nil { return "working" }
         if bird == .wren, facts.focusUntil != nil { return "working" }

@@ -46,7 +46,8 @@ struct AppFrame: View {
         .animation(.nest(NestMotion.base), value: screen)
         .focusedSceneValue(\.nestScreen, $screen)
         .task {
-            guard let events = try? DemoDay.events() else { return }
+            // `-NestSource empty` starts with no events at all, as the app will before the birds exist.
+            guard UserDefaults.standard.string(forKey: "NestSource") != "empty", let events = try? DemoDay.events() else { return }
             let startTime = UserDefaults.standard.string(forKey: "NestReplayStart")
             let (past, future) = DemoReplayStart.split(events, at: startTime)
             past.forEach(home.receive)

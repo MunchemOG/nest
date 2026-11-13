@@ -1,4 +1,5 @@
 import Foundation
+import NestKit
 
 /// Home's one plain statement, the quieter line under it, and what needs you.
 struct Headline: Hashable, Sendable {
@@ -6,7 +7,13 @@ struct Headline: Hashable, Sendable {
     let sub: String
     let attention: String?
 
-    init(facts: HeadlineFacts, waiting: Int, now: Date? = nil) {
+    init(facts: HeadlineFacts, waiting: Int, now: Date? = nil, asleep: Bool = false) {
+        attention = Self.attention(count: waiting)
+        if asleep {
+            main = "All six are asleep."
+            sub = "The first wakes in Phase \(Bird.allCases.map(\.buildPhase).min() ?? 2)."
+            return
+        }
         var parts: [String] = []
         if let task = facts.building { parts.append("Swift is building \(task).") }
         if let until = facts.focusUntil, parts.count < 2 { parts.append("Wren is holding focus until \(until).") }
@@ -23,7 +30,6 @@ struct Headline: Hashable, Sendable {
         }
         main = parts.first ?? "All six are idle."
         sub = parts.dropFirst().first ?? ""
-        attention = Self.attention(count: waiting)
     }
 
     /// "1 h 35 min", or "40 min" under an hour.

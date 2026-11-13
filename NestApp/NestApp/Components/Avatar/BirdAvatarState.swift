@@ -8,13 +8,16 @@ enum BirdAvatarState: String, CaseIterable, Hashable, Sendable {
     case active
     /// Paused: the tile loses its colour and shows a pause badge.
     case paused
+    /// Not built or not heard from yet: the tile loses its colour and shows a sleeping badge.
+    case asleep
 
-    /// The avatar state for a bird's status; an asleep bird rests until N1-22 gives it its own look.
+    /// The avatar state for a bird's status.
     init(_ status: BirdStatus) {
         switch status {
         case .active: self = .active
         case .paused: self = .paused
-        case .resting, .asleep: self = .resting
+        case .resting: self = .resting
+        case .asleep: self = .asleep
         }
     }
 
@@ -31,11 +34,12 @@ enum BirdAvatarState: String, CaseIterable, Hashable, Sendable {
         case .resting: .none
         case .active: .dot
         case .paused: .symbol("pause.fill")
+        case .asleep: .symbol("moon.zzz.fill")
         }
     }
 
     /// Whether the tile is drawn without colour.
-    var isGrayscale: Bool { self == .paused }
+    var isGrayscale: Bool { self == .paused || self == .asleep }
 
     /// The word for this state.
     var word: String {
@@ -43,6 +47,7 @@ enum BirdAvatarState: String, CaseIterable, Hashable, Sendable {
         case .resting: "resting"
         case .active: "working"
         case .paused: "paused"
+        case .asleep: "asleep"
         }
     }
 }
