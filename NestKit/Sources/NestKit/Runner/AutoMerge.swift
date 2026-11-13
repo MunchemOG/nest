@@ -35,8 +35,14 @@ public struct AutoMerge: Sendable {
                                 testsAdded: Self.testsAdded(from: outcome.summary?.tests), at: time, again: false)
     }
 
-    /// Performs `event`'s undo: reverts the merge it made, or, for an undo, reverts that revert (Redo). Returns the new event.
-    public func undo(_ event: NestEvent, at time: Date = .now) async throws -> NestEvent {
+    /// Performs `event`'s undo: reverts the merge it made, or, for an undo, reverts that revert (Redo). Returns the new event,
+    /// which carries `why` and reaches you as far as `attention` says.
+    public func undo(
+        _ event: NestEvent,
+        why: String = "You asked to undo it.",
+        attention: EventAttention = .none,
+        at time: Date = .now
+    ) async throws -> NestEvent {
         guard let undo = event.undo, undo.op == "git.revert", case .string(let commit)? = undo.args["commit"] else {
             throw AutoMergeError.cannotUndo(event.id)
         }
@@ -54,9 +60,9 @@ public struct AutoMerge: Sendable {
         return NestEvent(
             id: EventID.make(at: time), ts: time, sender: .bird(.swift), kind: .undo, topic: .swiftMergeRolledBack,
             summary: "Swift undid the merge of \(task)",
-            data: ["target": .string(event.id), "why": .string("You asked to undo it.")],
+            data: ["target": .string(event.id), "why": .string(why)],
             undo: EventUndo(op: "git.revert", args: ["commit": .string(revert)]),
-            causedBy: event.id, attention: .none
+            causedBy: event.id, attention: attention
         )
     }
 
