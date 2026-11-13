@@ -11,12 +11,32 @@ struct TokenFile: Decodable {
         let tokens: [Token]
     }
 
+    struct TextStyle: Decodable {
+        let name: String
+        let fontSize: String
+        let lineHeight: String
+        let fontWeight: Int
+        let letterSpacing: String?
+        let sample: String
+    }
+
+    struct TextGroup: Decodable {
+        let family: String
+        let styles: [TextStyle]
+    }
+
+    struct TypeGroup: Decodable {
+        let families: [String: String]
+        let groups: [TextGroup]
+    }
+
     let color: Group
     let spacing: Group
     let radius: Group
     let shadow: Group
     let duration: Group
     let easing: Group
+    let type: TypeGroup
 
     /// The repository's `design/tokens.json`, found from this file's place in the repo.
     static let url = URL(fileURLWithPath: #filePath)

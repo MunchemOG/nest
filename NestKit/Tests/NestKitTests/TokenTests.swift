@@ -2,10 +2,10 @@ import Testing
 @testable import NestKit
 
 struct TokenTests {
-    /// Top-level groups of `tokens.json` that N1-02 does not turn into Swift values:
-    /// `type` belongs to N1-03 (fonts) and `effect` has no Swift type named yet.
-    static let groupsNotInSwift: Set<String> = ["name", "version", "type", "effect"]
-    static let groupsInSwift: Set<String> = ["color", "spacing", "radius", "shadow", "duration", "easing"]
+    /// Top-level groups of `tokens.json` that are not turned into Swift values:
+    /// `effect` has no Swift type named yet.
+    static let groupsNotInSwift: Set<String> = ["name", "version", "effect"]
+    static let groupsInSwift: Set<String> = ["color", "spacing", "radius", "shadow", "duration", "easing", "type"]
 
     @Test func everyTokenGroupIsCoveredOrKnowinglyLeftOut() throws {
         #expect(try TokenFile.topLevelKeys() == Self.groupsInSwift.union(Self.groupsNotInSwift))

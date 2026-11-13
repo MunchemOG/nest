@@ -9,7 +9,7 @@ let package = Package(
         .library(name: "NestKit", targets: ["NestKit"]),
     ],
     targets: [
-        .target(name: "NestKit", resources: [.copy("Resources/demo-day.jsonl")]),
+        .target(name: "NestKit", resources: [.copy("Resources/demo-day.jsonl"), .copy("Resources/Fonts")]),
         .testTarget(name: "NestKitTests", dependencies: ["NestKit"]),
     ]
 )
