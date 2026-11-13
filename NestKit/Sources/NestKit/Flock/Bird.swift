@@ -37,6 +37,18 @@ public enum Bird: String, CaseIterable, Hashable, Sendable {
         }
     }
 
+    /// The phase of the build order (`docs/master-plan.md`) in which the bird is built and wakes up.
+    public var buildPhase: Int {
+        switch self {
+        case .swift: 2
+        case .wren: 3
+        case .magpie: 4
+        case .crow: 5
+        case .owl: 6
+        case .peacock: 7
+        }
+    }
+
     /// The bird's own colour, used for nothing else.
     public var color: NestColor {
         switch self {

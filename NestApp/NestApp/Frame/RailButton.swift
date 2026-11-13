@@ -8,12 +8,13 @@ struct RailButton: View {
     let select: () -> Void
 
     @State private var isHovered = false
+    @Environment(\.nestAccent) private var accent
 
     /// The button's width and height.
     static let side = NestSpace.s6 + NestSpace.s2
 
     var body: some View {
-        let palette = RailButtonPalette(isSelected: isSelected, isHovered: isHovered)
+        let palette = RailButtonPalette(isSelected: isSelected, isHovered: isHovered, accent: accent)
         let shape = RoundedRectangle(cornerRadius: NestRadius.md, style: .continuous)
         Button(action: select) {
             Image(systemName: screen.symbol)

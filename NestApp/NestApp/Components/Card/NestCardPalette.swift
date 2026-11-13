@@ -5,11 +5,11 @@ struct NestCardPalette: Hashable, Sendable {
     let fill: NestColor
     let border: NestColor
 
-    init(_ state: NestCardState) {
+    init(_ state: NestCardState, accent: NestAccent = .clay) {
         if state.isPressed {
             (fill, border) = (.surface3, .lineStrong)
         } else if state.isSelected {
-            (fill, border) = (.surface2, .clay)
+            (fill, border) = (.surface2, accent.fill)
         } else if state.isHovered {
             (fill, border) = (.surface2, .lineStrong)
         } else {

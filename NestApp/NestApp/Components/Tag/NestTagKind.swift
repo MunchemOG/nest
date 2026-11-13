@@ -48,6 +48,12 @@ enum NestTagKind: Hashable, Sendable {
         }
     }
 
+    /// The tag's background in an accent; only the clay kind follows the accent.
+    func fill(accent: NestAccent) -> NestColor { self == .clay ? accent.tint : fill }
+
+    /// The tag's text in an accent; only the clay kind follows the accent.
+    func label(accent: NestAccent) -> NestColor { self == .clay ? accent.soft : label }
+
     /// The edge drawn around a selected tag; none at rest.
     func border(selected: Bool) -> NestColor? {
         guard selected else { return nil }

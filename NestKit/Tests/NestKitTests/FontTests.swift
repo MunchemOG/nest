@@ -67,3 +67,10 @@ struct FontTests {
         #expect(NestFont.bodyS.tracking == 0)
     }
 }
+
+struct BundledFontFileTests {
+    @Test func everyFontFileIsListed() {
+        let names = Set(NestFont.bundledFontURLs.map(\.lastPathComponent))
+        #expect(names == ["InterTight.ttf", "Inter.ttf", "IBMPlexMono-Regular.ttf"])
+    }
+}

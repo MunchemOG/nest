@@ -6,13 +6,17 @@ struct NestButtonPalette: Hashable, Sendable {
     let border: NestColor?
     let label: NestColor
 
-    init(_ variant: NestButtonVariant, _ state: NestButtonState) {
+    init(_ variant: NestButtonVariant, _ state: NestButtonState, accent: NestAccent = .clay) {
         let phase: Phase = !state.isEnabled ? .disabled : state.isPressed ? .pressed : state.isHovered ? .hover : .rest
         switch (variant, phase) {
-        case (.primary, .rest): (fill, border, label) = (.clay, nil, .onClay)
-        case (.primary, .hover): (fill, border, label) = (.claySoft, nil, .onClay)
-        case (.primary, .pressed): (fill, border, label) = (.clayDeep, nil, .onClay)
+        case (.primary, .rest): (fill, border, label) = (accent.fill, nil, accent.onFill)
+        case (.primary, .hover): (fill, border, label) = (accent.soft, nil, accent.onFill)
+        case (.primary, .pressed): (fill, border, label) = (accent.deep, nil, accent.onFill)
         case (.primary, .disabled): (fill, border, label) = (.surface2, nil, .textMuted)
+        case (.solid, .rest): (fill, border, label) = (.textPrimary, nil, .surface0)
+        case (.solid, .hover): (fill, border, label) = (.textPrimary, nil, accent.deep)
+        case (.solid, .pressed): (fill, border, label) = (.textSecondary, nil, .surface0)
+        case (.solid, .disabled): (fill, border, label) = (.surface2, nil, .textMuted)
         case (.secondary, .rest): (fill, border, label) = (nil, .lineStrong, .textPrimary)
         case (.secondary, .hover): (fill, border, label) = (.surface2, .lineStrong, .textPrimary)
         case (.secondary, .pressed): (fill, border, label) = (.surface3, .lineStrong, .textPrimary)

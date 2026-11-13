@@ -13,6 +13,7 @@ struct SendButtonStyle: ButtonStyle {
         @Environment(\.isEnabled) private var isEnabled
         @Environment(\.isFocused) private var isFocused
         @State private var isHovered = false
+        @Environment(\.nestAccent) private var accent
 
         var body: some View {
             let state = NestButtonState(
@@ -21,7 +22,7 @@ struct SendButtonStyle: ButtonStyle {
                 isPressed: configuration.isPressed,
                 isFocused: isFocused
             )
-            let palette = NestButtonPalette(.primary, state)
+            let palette = NestButtonPalette(.primary, state, accent: accent)
             let side = NestButtonSize.regular.height
             configuration.label
                 .foregroundStyle(Color(palette.label))

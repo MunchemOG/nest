@@ -5,14 +5,24 @@ import SwiftUI
 struct ActivityRow: View {
     let event: NestEvent
     let isUndone: Bool
+    let isCompact: Bool
     let publish: @MainActor (NestEvent) -> Void
 
     @Environment(\.timeZone) private var timeZone
+    @State private var isHovered = false
 
-    init(_ event: NestEvent, isUndone: Bool, publish: @escaping @MainActor (NestEvent) -> Void) {
+    init(_ event: NestEvent, isUndone: Bool, isCompact: Bool = false, publish: @escaping @MainActor (NestEvent) -> Void) {
         self.event = event
         self.isUndone = isUndone
+        self.isCompact = isCompact
         self.publish = publish
+    }
+
+    /// The sentence shown: in a compact row the bird's name is dropped, since the line under it names the bird.
+    var sentence: String {
+        guard isCompact, let bird = event.sender.bird, event.summary.hasPrefix(bird.name + " ") else { return event.summary }
+        let rest = event.summary.dropFirst(bird.name.count + 1)
+        return rest.prefix(1).uppercased() + rest.dropFirst()
     }
 
     /// The control this row offers.
@@ -40,10 +50,11 @@ struct ActivityRow: View {
         HStack(alignment: .top, spacing: NestSpace.s3) {
             avatar
             VStack(alignment: .leading, spacing: NestSpace.s1) {
-                Text(event.summary)
+                Text(sentence)
                     .nestFont(.bodyS)
                     .strikethrough(isUndone)
                     .foregroundStyle(Color(isUndone ? NestColor.textMuted : NestColor.textPrimary))
+                    .lineLimit(isCompact ? 2 : nil)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(meta(in: timeZone))
                     .nestFont(.caption)
@@ -52,9 +63,18 @@ struct ActivityRow: View {
             }
             Spacer(minLength: NestSpace.s2)
             control
+                .opacity(isCompact && !isHovered ? 0 : 1)
         }
         .padding(.horizontal, NestSpace.s3)
         .padding(.vertical, NestSpace.s2)
+        .background {
+            if isCompact {
+                RoundedRectangle(cornerRadius: NestRadius.md, style: .continuous)
+                    .fill(Color(isHovered ? NestColor.line : .surface0).opacity(isHovered ? 1 : 0))
+            }
+        }
+        .onHover { isHovered = $0 }
+        .animation(.nest(NestMotion.fast), value: isHovered)
         .accessibilityElement(children: .contain)
     }
 

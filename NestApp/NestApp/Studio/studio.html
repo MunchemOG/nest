@@ -1,0 +1,534 @@
+<!doctype html>
+<!-- The approved Home studio, from design/reference/home.html: the 3D flock and its name tags, drawn by three.js r147 (bundled, MIT; see three-LICENSE.txt).
+     The Nest app supplies the state through window.nest; the app draws everything else on top in SwiftUI. -->
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #0e0e10;
+  --fg: #f2f1ee;
+  --fg-2: rgba(242, 241, 238, 0.62);
+  --fg-3: rgba(242, 241, 238, 0.5);
+  --line: rgba(242, 241, 238, 0.12);
+  --raise: rgba(28, 28, 31, 0.86);
+  --clay: #cb6d4d;
+  --warn: #e7b04b;
+  --display: "Inter Tight", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --text: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--fg); font-family: var(--text); font-size: 14px; -webkit-font-smoothing: antialiased; overflow: hidden; }
+button, input { font: inherit; color: inherit; }
+#stage { position: fixed; inset: 0; }
+#stage canvas { display: block; width: 100%; height: 100%; }
+.ui { position: fixed; inset: 0; pointer-events: none; padding-top: calc(env(safe-area-inset-top, 0px) + 28px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 28px); padding-left: max(40px, env(safe-area-inset-left, 0px)); padding-right: max(40px, env(safe-area-inset-right, 0px)); }
+.tag { position: absolute; left: 0; top: 0; text-align: center; pointer-events: auto; cursor: pointer; transition: opacity 500ms var(--ease); white-space: nowrap; display: grid; justify-items: center; gap: 6px; animation: fadein 900ms var(--ease) both; }
+.tag { text-shadow: 0 1px 14px rgba(0, 0, 0, 0.75), 0 0 2px rgba(0, 0, 0, 0.5); }
+.tag b { font-family: var(--display); font-weight: 500; font-size: 15px; letter-spacing: -0.01em; color: var(--fg); transition: color 250ms ease; }
+.tag .s { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--fg-3); transition: color 300ms ease; }
+.tag .d { font-variant-numeric: tabular-nums; }
+.tag .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--fg-3); flex: none; transition: background 300ms ease; }
+.tag.working .dot { background: var(--c); animation: pulse 1.8s ease-in-out infinite; }
+.tag.live .s { color: var(--fg); }
+.tag.paused .s { color: var(--warn); }
+.tag.paused .dot { background: var(--warn); }
+/* Nest: a bird not built yet sleeps, quieter than the rest */
+.tag.asleep b { color: var(--fg-2); }
+.tag.asleep .s { color: var(--fg-3); }
+.tag:hover b { color: #fff; }
+.tags.dim .tag { opacity: 0; pointer-events: none; }
+@keyframes pulse { 50% { opacity: 0.3; } }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); filter: blur(10px); } }
+@keyframes fadein { from { opacity: 0; filter: blur(6px); } }
+.ui { position: fixed; inset: 0; pointer-events: none; }
+button, input { font: inherit; color: inherit; }
+button { background: none; border: 0; padding: 0; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--clay); outline-offset: 3px; border-radius: 6px; }
+</style></head>
+<body>
+<div id="stage"></div>
+<div class="ui"><div class="tags" id="tags"></div></div>
+<script src="three.min.js"></script>
+<script src="SVGLoader.js"></script>
+<script src="RoomEnvironment.js"></script>
+<script src="CopyShader.js"></script>
+<script src="EffectComposer.js"></script>
+<script src="RenderPass.js"></script>
+<script src="ShaderPass.js"></script>
+<script src="BokehShader.js"></script>
+<script src="BokehPass.js"></script>
+<script>
+"use strict";
+const BIRDS = [
+  { id: "wren", name: "Wren", role: "Keeper of space", color: "#d2ae8a", svg: '<path d="M62 50 A16 16 0 1 1 46 38 L56 38 L74 24" fill="none" stroke-width="8"/><circle cx="44" cy="52" r="3.5" stroke="none"/>' },
+  { id: "swift", name: "Swift", role: "Builder", color: "#6e9bd3", svg: '<path d="M8 64 Q28 36 50 44 Q72 36 92 64" fill="none" stroke-width="7"/><path d="M50 44 L50 58" fill="none" stroke-width="7"/><circle cx="50" cy="34" r="6" stroke="none"/><path d="M50 58 L44 66 M50 58 L56 66" fill="none" stroke-width="7"/><path d="M30 80 L46 80 M54 80 L76 80 M38 90 L62 90" stroke-width="5" fill="none"/>' },
+  { id: "crow", name: "Crow", role: "Inventor", color: "#8e86d6", svg: '<path d="M54 66 A18 18 0 1 1 58 34 L82 46 L60 52" fill="none" stroke-width="8"/><circle cx="46" cy="46" r="3.5" stroke="none"/>' },
+  { id: "owl", name: "Owl", role: "Eyes", color: "#d4a954", svg: '<circle cx="35" cy="56" r="13" fill="none" stroke-width="8"/><circle cx="65" cy="56" r="13" fill="none" stroke-width="8"/><path d="M26 30 L34 40 M74 30 L66 40" fill="none" stroke-width="8"/>' },
+  { id: "magpie", name: "Magpie", role: "Second brain", color: "#d47a93", svg: '<path d="M30 46 A14 14 0 1 1 46 54 L62 62 L86 82" fill="none" stroke-width="7"/><path d="M30 40 L16 38" fill="none" stroke-width="7"/><circle cx="40" cy="38" r="4" stroke="none"/><path d="M48 58 L60 64 L60 84 L54 78 L48 84 Z" stroke-width="5"/>' },
+  { id: "peacock", name: "Peacock", role: "Showcase", color: "#c27bb8", svg: '<path d="M22 66 A28 28 0 0 1 78 66" fill="none" stroke-width="8"/><path d="M36 66 A14 14 0 0 1 64 66" fill="none" stroke-width="8"/><circle cx="50" cy="66" r="5" stroke="none"/>' },
+];
+const BI = Object.fromEntries(BIRDS.map((b, i) => [b.id, i]));
+const B = id => BIRDS[BI[id]];
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, "0");
+const hm = t => { t = Math.max(0, Math.min(1439.99, t)); return `${pad(Math.floor(t / 60))}:${pad(Math.floor(t % 60))}`; };
+const dur = m => { m = Math.max(0, Math.round(m)); return m < 60 ? `${m}\u00a0min` : `${Math.floor(m / 60)}\u00a0h ${m % 60}\u00a0min`; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const cap = s => s.replace(/^./, c => c.toUpperCase());
+const base = p => String(p).split("/").pop();
+const dir = p => { const a = String(p).replace(/^~\/(Mithu\/)?/, "").split("/"); a.pop(); return a.join(" / ") || "Home"; };
+const ease = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+let REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// ───────────────────────── bridge: the Nest app supplies the state (Swift calls nest.set and nest.hop)
+const S = { focus: null, mode: { label: "Night", until: null }, statuses: {}, tagLines: {}, progress: {} };
+function statusOf(id) { return S.statuses[id] || "idle"; }
+function progressOf(id) { const f = S.progress[id]; return f == null ? null : { frac: f }; }
+function tagOf(id) { return S.tagLines[id] || ""; }
+const short = ev => ev.summary.replace(new RegExp("^" + (BI[ev.bird] != null ? B(ev.bird).name : "") + "('s)? "), "");
+window.nest = {
+  set(state) { Object.assign(S, state); if ("reduceMotion" in state) REDUCED = state.reduceMotion; if (typeof ui !== "undefined") ui.dirty = true; },
+  hop(bird, summary) { const i = BI[bird]; if (i == null) return; birdEvent(i, summary ? { bird, summary } : null); if (typeof ui !== "undefined") ui.dirty = true; },
+};
+
+// ───────────────────────── 3D studio
+const stage = $("stage");
+const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+const PR = Math.min(devicePixelRatio || 1, 2);
+renderer.setPixelRatio(PR);
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.NoToneMapping;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.VSMShadowMap;
+stage.appendChild(renderer.domElement);
+const lin = hex => new THREE.Color(hex).convertSRGBToLinear();
+const scene = new THREE.Scene();
+const BG = lin("#09090b");
+scene.fog = new THREE.Fog(BG.clone(), 9, 19);
+// the back wall: a soft wash of light above the horizon, tinted by the Mac's mode, mirrored faintly in the floor
+const TINT = lin("#5a64c8").multiplyScalar(0.05), tintGoal = new THREE.Color();
+const MODE_TINT = { Morning: "#c88a5c", Focus: "#5a64c8", Night: "#3a5aa8" };
+const wall = new THREE.Mesh(new THREE.SphereGeometry(70, 96, 48), new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false,
+  uniforms: { uBG: { value: BG }, uTint: { value: TINT } },
+  vertexShader: `varying vec3 vDir; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vDir = w.xyz - cameraPosition; gl_Position = projectionMatrix * viewMatrix * w; }`,
+  fragmentShader: `uniform vec3 uBG, uTint; varying vec3 vDir;
+    vec3 wallAt(float y, float az) {
+      float centre = exp(-az * az / 1.6);
+      return uTint * exp(-y / 0.16) * (0.35 + 0.65 * centre) + vec3(0.06) * exp(-pow(y / 0.0018, 2.0)) * centre;
+    }
+    void main() {
+      vec3 d = normalize(vDir); float az = atan(d.x, -d.z);
+      vec3 col = uBG + (d.y >= 0.0 ? vec3(0.0) : wallAt(-d.y, az) * 0.45);
+      gl_FragColor = vec4(col, 1.0);
+    }`,
+}));
+wall.renderOrder = -10; scene.add(wall);
+// a curved studio wall far behind the flock; the floor sweeps up into it, and the light is brightest where they meet
+const WALL_Z = -22, WALL_R = 4;
+const cove = (() => {
+  const prof = [];
+  for (let k = 0; k < 10; k++) prof.push([-10 + k * (WALL_Z + 10) / 10, -0.002]);
+  for (let k = 0; k <= 20; k++) { const a = (k / 20) * Math.PI / 2; prof.push([WALL_Z - Math.sin(a) * WALL_R, WALL_R - Math.cos(a) * WALL_R]); }
+  for (let h = 1; h <= 6; h++) prof.push([WALL_Z - WALL_R, WALL_R + h * 4]);
+  const XS = 48, W = 140, pos = [], idx = [];
+  prof.forEach(([z, y]) => { for (let i = 0; i <= XS; i++) pos.push(-W / 2 + (i / XS) * W, y, z); });
+  for (let j = 0; j < prof.length - 1; j++) for (let i = 0; i < XS; i++) { const a = j * (XS + 1) + i, b = a + XS + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+  return new THREE.Mesh(g, new THREE.ShaderMaterial({
+    depthWrite: false, fog: false, uniforms: { uBG: { value: BG }, uTint: { value: TINT } },
+    vertexShader: `varying vec3 vW; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+    fragmentShader: `uniform vec3 uBG, uTint; varying vec3 vW;
+      void main() {
+        float centre = exp(-vW.x * vW.x / 260.0);
+        float near = 1.0 - smoothstep(-19.0, -7.0, vW.z);
+        vec3 col = uBG + uTint * exp(-max(vW.y, 0.0) / 2.6) * (0.3 + 0.7 * centre) * 1.15 * near;
+        gl_FragColor = vec4(col, 1.0);
+      }`,
+  }));
+})();
+cove.renderOrder = -9; scene.add(cove);
+
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04).texture;
+const STRIPS = (() => {
+  const env = new THREE.Scene(); env.background = lin("#050506");
+  const box = (w, h, x, y, z, rx, ry, k) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0.98, 0.96).multiplyScalar(k), side: THREE.DoubleSide })); m.position.set(x, y, z); m.rotation.set(rx, ry, 0); env.add(m); };
+  box(7, 1.4, 0, 5, 0, Math.PI / 2, 0, 5);
+  box(0.4, 7, -5, 1.5, 1.5, 0, Math.PI / 2, 4);
+  box(0.4, 7, 5, 1.5, 1.5, 0, -Math.PI / 2, 3);
+  box(12, 0.2, 0, 0.5, -6, 0, 0, 5);
+  box(6, 3, 0, 2, 6, 0, Math.PI, 0.9);
+  return pmrem.fromScene(env, 0.02).texture;
+})();
+const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.1, 100);
+
+const key = new THREE.DirectionalLight(0xfff4ea, 1.6);
+key.position.set(-2, 9, 3); key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 14; key.shadow.blurSamples = 24; key.shadow.bias = -0.0004;
+Object.assign(key.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 1, far: 20 });
+scene.add(key);
+const rim = new THREE.DirectionalLight(0xdbe4ff, 2.4); rim.position.set(0.6, 2.4, -7); scene.add(rim);
+const rim2 = new THREE.DirectionalLight(0xffe2c8, 0.9); rim2.position.set(-5, 2.5, -4); scene.add(rim2);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x09090b, 0.18));
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(140, 60), new THREE.MeshPhysicalMaterial({ color: lin("#0b0b0d"), roughness: 0.6, metalness: 0, specularIntensity: 0.065, envMapIntensity: 0, transparent: true, opacity: 0.8 }));
+const sweep = new THREE.SpotLight(0xfff6ee, 0, 22, 0.2, 1, 1.2); sweep.position.set(-12, 4.5, 6); sweep.target.position.set(-12, 0.6, 0.3); scene.add(sweep, sweep.target);
+const spot = new THREE.SpotLight(0xfff3e8, 1.5, 26, 0.5, 1, 1.3); spot.position.set(0, 10, 2.2); spot.target.position.set(0, 0, 0.2); scene.add(spot, spot.target);
+floor.material.onBeforeCompile = sh => {
+  sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vFW;").replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvFW = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+  sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vFW;").replace("#include <output_fragment>", "diffuseColor.a *= 1.0 - smoothstep(8.0, 17.0, -vFW.z);\n#include <output_fragment>").replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
+    vec2 g = vFW.xz / 0.28; float fw = length(fwidth(g));
+    float dotm = 1.0 - smoothstep(0.055, 0.055 + fw * 0.9, length(fract(g) - 0.5));
+    float rr = length(vFW.xz - vec2(0.0, 0.3));
+    totalEmissiveRadiance += vec3(0.85, 0.87, 0.95) * dotm * 0.016 * (1.0 - smoothstep(1.5, 6.5, rr)) * (1.0 - smoothstep(0.25, 0.6, fw));`);
+};
+floor.rotation.x = -Math.PI / 2; floor.position.z = WALL_Z + 30; floor.receiveShadow = true; scene.add(floor);
+
+// ── each bird is its app icon made solid: a glossy tile in its colour, the glyph floating just in front in black enamel
+// The glyph is drawn exactly as the official SVG, then traced into one clean outline, so crossing strokes fuse instead of overlapping.
+function glyphShapes(bird) {
+  const N = 360, PAD = 6, K = N / (100 + PAD * 2);
+  const cv = document.createElement("canvas"); cv.width = cv.height = N;
+  const cx = cv.getContext("2d");
+  cx.setTransform(K, 0, 0, K, PAD * K, PAD * K);
+  cx.lineCap = "round"; cx.lineJoin = "round"; cx.fillStyle = cx.strokeStyle = "#fff";
+  const doc = new DOMParser().parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${bird.svg}</svg>`, "image/svg+xml");
+  for (const el of doc.documentElement.children) {
+    let p;
+    if (el.tagName === "circle") { p = new Path2D(); p.arc(+el.getAttribute("cx"), +el.getAttribute("cy"), +el.getAttribute("r"), 0, Math.PI * 2); }
+    else p = new Path2D(el.getAttribute("d"));
+    if (el.getAttribute("fill") !== "none") cx.fill(p);
+    if (el.getAttribute("stroke") !== "none" && el.getAttribute("stroke-width")) { cx.lineWidth = +el.getAttribute("stroke-width"); cx.stroke(p); }
+  }
+  const px = cx.getImageData(0, 0, N, N).data, v = (x, y) => (x < 0 || y < 0 || x >= N || y >= N) ? 0 : px[(y * N + x) * 4 + 3] / 255;
+  // marching squares at the half-coverage line; each crossing is keyed by its cell edge so segments chain into loops
+  const T = 0.5, next = new Map(), pt = new Map();
+  const ek = (x, y, h) => (h ? "h" : "v") + x + "," + y;
+  const cross = (x, y, h) => { const k = ek(x, y, h); if (!pt.has(k)) { const a = v(x, y), b = h ? v(x + 1, y) : v(x, y + 1), t = (T - a) / (b - a); pt.set(k, h ? [x + t, y] : [x, y + t]); } return k; };
+  for (let y = -1; y < N; y++) for (let x = -1; x < N; x++) {
+    const a = v(x, y) > T, b = v(x + 1, y) > T, c = v(x + 1, y + 1) > T, d = v(x, y + 1) > T;
+    const top = () => cross(x, y, 1), right = () => cross(x + 1, y, 0), bottom = () => cross(x, y + 1, 1), left = () => cross(x, y, 0);
+    const seg = (p, q) => next.set(p(), q());
+    const code = (a ? 8 : 0) | (b ? 4 : 0) | (c ? 2 : 0) | (d ? 1 : 0);
+    switch (code) {
+      case 1: seg(left, bottom); break; case 2: seg(bottom, right); break; case 3: seg(left, right); break;
+      case 4: seg(right, top); break; case 6: seg(bottom, top); break; case 7: seg(left, top); break;
+      case 8: seg(top, left); break; case 9: seg(top, bottom); break; case 11: seg(top, right); break;
+      case 12: seg(right, left); break; case 13: seg(right, bottom); break; case 14: seg(bottom, left); break;
+      case 5: if ((v(x, y) + v(x + 1, y) + v(x + 1, y + 1) + v(x, y + 1)) / 4 > T) { seg(left, top); seg(right, bottom); } else { seg(left, bottom); seg(right, top); } break;
+      case 10: if ((v(x, y) + v(x + 1, y) + v(x + 1, y + 1) + v(x, y + 1)) / 4 > T) { seg(top, right); seg(bottom, left); } else { seg(top, left); seg(bottom, right); } break;
+    }
+  }
+  const loops = [], seen = new Set();
+  for (const start of next.keys()) {
+    if (seen.has(start)) continue;
+    const loop = []; let k = start;
+    while (k && !seen.has(k)) { seen.add(k); const [gx, gy] = pt.get(k); loop.push(new THREE.Vector2((gx / K - PAD - 50) / 50, -(gy / K - PAD - 50) / 50)); k = next.get(k); }
+    const clean = loop.filter((p, i) => i % 2 === 0).filter((p, i, a) => p.distanceTo(a[(i + 1) % a.length]) > 1e-4);
+    if (clean.length > 6) loops.push(clean);
+  }
+  const area = l => l.reduce((s, p, i) => { const q = l[(i + 1) % l.length]; return s + p.x * q.y - q.x * p.y; }, 0) / 2;
+  const inside = (p, l) => { let c = false; for (let i = 0, j = l.length - 1; i < l.length; j = i++) { const a = l[i], b = l[j]; if ((a.y > p.y) !== (b.y > p.y) && p.x < (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x) c = !c; } return c; };
+  for (let i = loops.length - 1; i >= 0; i--) if (Math.abs(area(loops[i])) < 2e-4) loops.splice(i, 1);
+  const depth = loops.map(l => loops.filter(o => o !== l && Math.abs(area(o)) > Math.abs(area(l)) && inside(l[0], o)).length);
+  const shapes = [];
+  loops.forEach((l, i) => {
+    if (depth[i] % 2) return;
+    const s = new THREE.Shape(l);
+    loops.forEach((h, j) => { if (depth[j] === depth[i] + 1 && inside(h[0], l)) s.holes.push(new THREE.Path(h)); });
+    shapes.push(s);
+  });
+  return shapes;
+}
+function roundedSquare(h, r) {
+  const s = new THREE.Shape();
+  s.moveTo(-h + r, -h); s.lineTo(h - r, -h); s.quadraticCurveTo(h, -h, h, -h + r); s.lineTo(h, h - r); s.quadraticCurveTo(h, h, h - r, h);
+  s.lineTo(-h + r, h); s.quadraticCurveTo(-h, h, -h, h - r); s.lineTo(-h, -h + r); s.quadraticCurveTo(-h, -h, -h + r, -h);
+  return s;
+}
+const TILE_D = 0.16, TILE_B = 0.07, GLYPH_Z = TILE_D / 2 + TILE_B + 0.045 + 0.026;
+const tileGeo = (() => { const g = new THREE.ExtrudeGeometry(roundedSquare(0.93, 0.26), { depth: TILE_D, bevelEnabled: true, bevelThickness: TILE_B, bevelSize: TILE_B, bevelSegments: 10, curveSegments: 24 }); g.translate(0, 0, -TILE_D / 2); return g; })();
+function sculpture(bird, tileMat, glyphMat) {
+  const g = new THREE.Group();
+  const tile = new THREE.Mesh(tileGeo, tileMat); tile.castShadow = true; tile.receiveShadow = true; g.add(tile);
+  const gd = 0.07, gb = 0.026;
+  const geo = new THREE.ExtrudeGeometry(glyphShapes(bird), { depth: gd, bevelEnabled: true, bevelThickness: gb, bevelSize: 0.012, bevelSegments: 5, curveSegments: 4 });
+  { const n = geo.attributes.normal; for (let k = 0; k < n.count; k++) { const x = n.getX(k), y = n.getY(k), z = n.getZ(k); if (!(x * x + y * y + z * z > 1e-8)) n.setXYZ(k, 0, 0, 1); } }
+  const glyph = new THREE.Mesh(geo, glyphMat); glyph.castShadow = true; glyph.receiveShadow = true;
+  glyph.position.z = GLYPH_Z; g.add(glyph);
+  const box = new THREE.Box3().setFromObject(g);
+  g.userData.minY = box.min.y;
+  return g;
+}
+
+const GREY = lin("#55555a"), SC = 0.5, GLYPH_DARK = lin("#0e0e10");
+function fadeReflection(sh) {
+  sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying float vWY;").replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvWY = (modelMatrix * vec4(transformed, 1.0)).y;");
+  sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying float vWY;").replace("#include <dithering_fragment>", "#include <dithering_fragment>\nif (vWY < 0.0) gl_FragColor.rgb *= pow(smoothstep(-0.5, -0.04, vWY), 2.0);");
+}
+// a soft shadow under each floating bird grounds it on the floor
+const blobTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d"), g = x.createRadialGradient(64, 64, 0, 64, 64, 64); g.addColorStop(0, "rgba(0,0,0,0.85)"); g.addColorStop(0.45, "rgba(0,0,0,0.38)"); g.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = g; x.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })();
+const flock = BIRDS.map((b, i) => {
+  const col = lin(b.color);
+  const mat = new THREE.MeshPhysicalMaterial({ color: col.clone(), roughness: 0.3, metalness: 0.0, clearcoat: 1, clearcoatRoughness: 0.04, envMap: STRIPS, envMapIntensity: 1.1, sheen: 0.35, sheenRoughness: 0.5, sheenColor: col.clone().lerp(new THREE.Color(1, 1, 1), 0.5) });
+  const gmat = new THREE.MeshPhysicalMaterial({ color: lin("#0e0e10"), roughness: 0.34, metalness: 0.15, clearcoat: 0.8, clearcoatRoughness: 0.22, envMap: STRIPS, envMapIntensity: 1.5, emissive: col.clone(), emissiveIntensity: 0 });
+  mat.onBeforeCompile = fadeReflection; gmat.onBeforeCompile = fadeReflection;
+  const s = sculpture(b, mat, gmat); s.scale.setScalar(SC);
+  const holder = new THREE.Group(); holder.add(s); scene.add(holder);
+  s.traverse(o => { if (o.isMesh) { o.userData.bird = i; o.layers.enable(2); } });
+  // floor ring: track + progress arc
+  const track = new THREE.Mesh(new THREE.RingGeometry(0.7, 0.708, 160), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.06, depthWrite: false }));
+  const arcMat = new THREE.MeshBasicMaterial({ color: col.clone().multiplyScalar(1.5), transparent: true, opacity: 0.95, depthWrite: false, side: THREE.DoubleSide });
+  const arc = new THREE.Mesh(new THREE.RingGeometry(0.696, 0.712, 160, 1, 0, 0.0001), arcMat);
+  [track, arc].forEach(m => { m.rotation.x = -Math.PI / 2; scene.add(m); });
+  const tip = new THREE.Mesh(new THREE.CircleGeometry(0.022, 32), new THREE.MeshBasicMaterial({ color: col.clone().multiplyScalar(3), transparent: true, depthWrite: false }));
+  tip.rotation.x = -Math.PI / 2; tip.visible = false; scene.add(tip);
+  const blob = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.62), new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false, opacity: 0.8 }));
+  blob.rotation.x = -Math.PI / 2; scene.add(blob);
+  const glow = new THREE.PointLight(new THREE.Color(b.color), 0, 3.2, 2); scene.add(glow);
+  return { b, col, mat, gmat, s, glow, rank: i, target: new THREE.Vector3(), holder, track, arc, tip, blob, arcFrac: -1, phase: i * 1.37, hop: -9, look: 0, lift: 0, pauseK: 0, dimK: 0, base: new THREE.Vector3() };
+});
+const mirrorRoot = new THREE.Group(); mirrorRoot.scale.y = -1; scene.add(mirrorRoot);
+flock.forEach(f => { f.refl = f.holder.clone(true); f.refl.renderOrder = -1; f.refl.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } }); mirrorRoot.add(f.refl); });
+const V_SLOTS = [[0, 0, 0.9], [-1.8, 0.22, 0.05], [1.8, 0.22, 0.05], [-3.65, 0.44, -0.8], [3.65, 0.44, -0.8], [-5.45, 0.66, -1.65]];
+function rankFlock() {
+  const w = id => { const st = statusOf(id); return st === "working" ? 0 : st === "paused" ? 2 : 1; };
+  [...flock].sort((p, q) => w(p.b.id) - w(q.b.id) || p.rank0 - q.rank0).forEach((f, k) => { f.rank = k; });
+}
+function layout(snap) {
+  const portrait = innerWidth / innerHeight < 0.9;
+  rankFlock();
+  flock.forEach((f, i) => {
+    const k = f.rank;
+    if (portrait) f.target.set((k % 3 - 1) * 1.62, 0, k < 3 ? 1.2 : -2.3);
+    else f.target.set(...V_SLOTS[k]);
+    if (snap) f.base.copy(f.target);
+    f.arcFrac = -1;
+  });
+}
+flock.forEach((f, i) => { f.rank0 = i; });
+layout(true);
+
+function setArc(f, frac) {
+  const k = Math.round(frac * 400) / 400;
+  if (k === f.arcFrac) return; f.arcFrac = k;
+  f.arc.geometry.dispose();
+  f.arc.geometry = new THREE.RingGeometry(0.696, 0.712, 160, 1, Math.PI / 2, -Math.max(0.0001, k * Math.PI * 2));
+  f.arc.visible = k > 0.001;
+  const a = Math.PI / 2 - k * Math.PI * 2;
+  f.tip.visible = f.arc.visible && k < 0.999;
+  f.tip.position.set(f.base.x + Math.cos(a) * 0.704, 0.006, f.base.z - Math.sin(a) * 0.704);
+}
+function birdEvent(i, ev, small) { if (i == null || REDUCED) return; flock[i].hop = clock; flock[i].hopSmall = !!small; if (ev) flock[i].lastEv = { ev, at: clock }; }
+
+class SoftBloom extends THREE.Pass {
+  constructor(strength, threshold, levels = 6) {
+    super(); this.needsSwap = false; this.strength = strength; this.levels = levels;
+    const mk = () => new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false });
+    this.down = Array.from({ length: levels }, mk); this.up = Array.from({ length: levels }, mk);
+    const vs = `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+    this.mDown = new THREE.ShaderMaterial({ uniforms: { tSrc: { value: null }, uPx: { value: new THREE.Vector2() }, uTh: { value: threshold }, uFirst: { value: 0 } }, vertexShader: vs, depthTest: false, depthWrite: false,
+      fragmentShader: `uniform sampler2D tSrc; uniform vec2 uPx; uniform float uTh, uFirst; varying vec2 vUv;
+        vec3 f(vec2 uv) { vec3 c = texture2D(tSrc, uv).rgb; c = (c.r == c.r && c.g == c.g && c.b == c.b) ? min(max(c, vec3(0.0)), vec3(24.0)) : vec3(0.0); if (uFirst > 0.5) { float l = max(c.r, max(c.g, c.b)); c *= max(0.0, l - uTh) / max(l, 1e-4); } return c; }
+        void main() { vec3 s = f(vUv) * 4.0 + f(vUv - uPx) + f(vUv + uPx) + f(vUv + vec2(uPx.x, -uPx.y)) + f(vUv - vec2(uPx.x, -uPx.y)); gl_FragColor = vec4(s / 8.0, 1.0); }` });
+    this.mUp = new THREE.ShaderMaterial({ uniforms: { tSrc: { value: null }, tAdd: { value: null }, uPx: { value: new THREE.Vector2() } }, vertexShader: vs, depthTest: false, depthWrite: false,
+      fragmentShader: `uniform sampler2D tSrc, tAdd; uniform vec2 uPx; varying vec2 vUv;
+        void main() { vec2 p = uPx;
+          vec3 s = texture2D(tSrc, vUv + vec2(-2.0 * p.x, 0.0)).rgb + texture2D(tSrc, vUv + vec2(2.0 * p.x, 0.0)).rgb + texture2D(tSrc, vUv + vec2(0.0, 2.0 * p.y)).rgb + texture2D(tSrc, vUv + vec2(0.0, -2.0 * p.y)).rgb
+                 + 2.0 * (texture2D(tSrc, vUv + p).rgb + texture2D(tSrc, vUv - p).rgb + texture2D(tSrc, vUv + vec2(p.x, -p.y)).rgb + texture2D(tSrc, vUv + vec2(-p.x, p.y)).rgb);
+          gl_FragColor = vec4(s / 12.0 + texture2D(tAdd, vUv).rgb, 1.0); }` });
+    this.mOut = new THREE.ShaderMaterial({ uniforms: { tSrc: { value: null }, uK: { value: 0 } }, vertexShader: vs, depthTest: false, depthWrite: false, transparent: true, blending: THREE.AdditiveBlending,
+      fragmentShader: `uniform sampler2D tSrc; uniform float uK; varying vec2 vUv; void main() { gl_FragColor = vec4(texture2D(tSrc, vUv).rgb * uK, 1.0); }` });
+    this.q = new THREE.FullScreenQuad();
+  }
+  setSize(w, h) { this.down.forEach((t, i) => { w = Math.max(1, Math.floor(w / 2)); h = Math.max(1, Math.floor(h / 2)); t.setSize(w, h); this.up[i].setSize(w, h); }); }
+  render(renderer, writeBuffer, readBuffer) {
+    const auto = renderer.autoClear; renderer.autoClear = false;
+    let src = readBuffer.texture, sw = readBuffer.width, sh = readBuffer.height;
+    this.q.material = this.mDown;
+    this.down.forEach((t, i) => { const u = this.mDown.uniforms; u.tSrc.value = src; u.uPx.value.set(1 / sw, 1 / sh); u.uFirst.value = i === 0 ? 1 : 0; renderer.setRenderTarget(t); this.q.render(renderer); src = t.texture; sw = t.width; sh = t.height; });
+    let cur = this.down[this.levels - 1];
+    this.q.material = this.mUp;
+    for (let i = this.levels - 2; i >= 0; i--) { const u = this.mUp.uniforms; u.tSrc.value = cur.texture; u.tAdd.value = this.down[i].texture; u.uPx.value.set(0.5 / cur.width, 0.5 / cur.height); renderer.setRenderTarget(this.up[i]); this.q.render(renderer); cur = this.up[i]; }
+    this.q.material = this.mOut; this.mOut.uniforms.tSrc.value = cur.texture; this.mOut.uniforms.uK.value = this.strength / this.levels;
+    renderer.setRenderTarget(readBuffer); this.q.render(renderer);
+    renderer.autoClear = auto;
+  }
+}
+const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: renderer.capabilities.isWebGL2 ? 4 : 0 });
+const composer = new THREE.EffectComposer(renderer, rt);
+composer.setPixelRatio(PR); composer.setSize(innerWidth, innerHeight);
+composer.addPass(new THREE.RenderPass(scene, camera));
+// depth of field: focus held on the lead bird
+const dof = new THREE.BokehPass(scene, camera, { focus: 11, aperture: 0.0009, maxblur: 0.005 }); dof.needsSwap = true;
+{ const r0 = dof.render.bind(dof); dof.render = (renderer, w, rb, dt, m) => { const su = renderer.shadowMap.autoUpdate; renderer.shadowMap.autoUpdate = false; r0(renderer, w, rb, dt, m); renderer.shadowMap.autoUpdate = su; }; }
+composer.addPass(dof);
+composer.addPass(new SoftBloom(0.45, 2.2));
+const finish = new THREE.ShaderPass({
+  uniforms: { tDiffuse: { value: null }, uT: { value: 0 }, uRes: { value: new THREE.Vector2(innerWidth, innerHeight) } },
+  vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uT; uniform vec2 uRes; varying vec2 vUv;
+    vec3 rrt(vec3 v) { vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }
+    vec3 aces(vec3 c) {
+      const mat3 I = mat3(vec3(0.59719, 0.07600, 0.02840), vec3(0.35458, 0.90834, 0.13383), vec3(0.04823, 0.01566, 0.83777));
+      const mat3 O = mat3(vec3(1.60475, -0.10208, -0.00327), vec3(-0.53108, 1.10813, -0.07276), vec3(-0.07367, -0.00605, 1.07602));
+      return clamp(O * rrt(I * (c / 0.6)), 0.0, 1.0);
+    }
+    vec3 srgb(vec3 c) { return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+    void main() {
+      vec2 c = (vUv - 0.5) * vec2(uRes.x / uRes.y, 1.0);
+      vec3 src = texture2D(tDiffuse, vUv).rgb; src = (src.r == src.r && src.g == src.g && src.b == src.b) ? max(src, vec3(0.0)) : vec3(0.0);
+      vec3 col = srgb(aces(src));
+      col *= mix(0.78, 1.0, smoothstep(1.15, 0.35, length(c)));
+      col += (hash(vUv * uRes + fract(uT) * 91.7) - 0.5) * 0.012;
+      gl_FragColor = vec4(col, 1.0);
+    }`,
+});
+composer.addPass(finish);
+
+// camera
+const cam = { pos: new THREE.Vector3(0, 2.4, 11), look: new THREE.Vector3(0, 0.6, 0), tPos: new THREE.Vector3(), tLook: new THREE.Vector3() };
+function restView() {
+  const a = camera.aspect, portrait = a < 0.9;
+  const half = portrait ? 2.75 : 7.4;
+  const d = Math.max(9, half / (Math.tan(THREE.MathUtils.degToRad(15)) * a) + 1.0);
+  cam.tPos.set(0, portrait ? d * 0.62 + 0.8 : 2.5, d + 1.0); cam.tLook.set(0, portrait ? -0.2 : 0.75, -1.0);
+}
+function focusView(i) {
+  const f = flock[i], a = camera.aspect, wide = a > 1.1;
+  const p = f.base;
+  cam.tPos.set(p.x + (wide ? 0.2 : 0), (wide ? 1.05 : 1.6) + p.y, p.z + (wide ? 5.0 : 5.8));
+  cam.tLook.set(p.x - (wide ? 1.0 : 0), (wide ? 0.46 : 0.2) + p.y, p.z);
+}
+// picking
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+const meshes = []; flock.forEach(f => f.s.traverse(o => o.isMesh && meshes.push(o)));
+let cue = null;
+let hover = null, downAt = null, pointer = { x: 0, y: 0, sx: 0, sy: 0 };
+function pick(cx, cy) { ndc.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera); const h = ray.intersectObjects(meshes, false)[0]; return h ? h.object.userData.bird : null; }
+renderer.domElement.addEventListener("pointermove", e => {
+  pointer.x = e.clientX / innerWidth * 2 - 1; pointer.y = -(e.clientY / innerHeight) * 2 + 1;
+  hover = pick(e.clientX, e.clientY); renderer.domElement.style.cursor = hover != null ? "pointer" : "default";
+});
+renderer.domElement.addEventListener("pointerdown", e => { downAt = { x: e.clientX, y: e.clientY }; });
+renderer.domElement.addEventListener("pointerup", e => {
+  downAt = null;
+});
+const tagsEl = $("tags");
+const tags = BIRDS.map((b, i) => { const el = document.createElement("button"); el.className = "tag"; el.style.setProperty("--c", b.color); el.style.animationDelay = (900 + i * 90) + "ms"; el.innerHTML = `<b>${b.name}</b><span class="s"><i class="dot"></i><span class="d"></span></span>`;  el.addEventListener("pointerenter", () => { hover = i; }); el.addEventListener("pointerleave", () => { hover = null; }); tagsEl.appendChild(el); return el; });
+const ui = { dirty: true, slow: 0 };
+const tmp = new THREE.Vector3();
+function placeTags() {
+  flock.forEach((f, i) => {
+    tmp.set(f.holder.position.x, f.holder.position.y - SC * 1.08 * f.holder.scale.y - 0.06, f.holder.position.z + 0.2).project(camera);
+    const x = (tmp.x + 1) / 2 * innerWidth, y = (1 - tmp.y) / 2 * innerHeight;
+    tags[i].style.transform = `translate(${x.toFixed(1)}px, ${(y + 6).toFixed(1)}px) translate(-50%, 0)`;
+    tags[i].style.zIndex = String(10 - f.rank);
+  });
+}
+function renderTags() {
+  flock.forEach((f, i) => {
+    const id = f.b.id, st = statusOf(id), recent = f.lastEv && clock - f.lastEv.at < 6;
+    const live = recent ? cap(short(f.lastEv.ev)) : ""; tags[i].querySelector(".d").textContent = live && live.length <= 30 ? live : tagOf(id);
+    tags[i].className = "tag" + (recent ? " live" : "") + (st === "working" ? " working" : "") + (st === "paused" ? " paused" : "") + (st === "asleep" ? " asleep" : "");
+  });
+}
+let clock = 0, last = performance.now();
+layout(true); restView(); cam.pos.copy(cam.tPos).multiplyScalar(REDUCED ? 1 : 1.22); cam.pos.y += REDUCED ? 0 : 1.2; cam.look.copy(cam.tLook); camera.position.copy(cam.pos);
+const up = new THREE.Vector3(0, 1, 0), fogTint = new THREE.Color(), WHITE3 = new THREE.Color(1, 1, 1);
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now; clock += dt;
+
+  // camera
+  if (S.focus == null) restView(); else focusView(S.focus);
+  pointer.sx += (pointer.x - pointer.sx) * (1 - Math.exp(-dt * 2)); pointer.sy += (pointer.y - pointer.sy) * (1 - Math.exp(-dt * 2));
+  const k = REDUCED ? 1 : 1 - Math.exp(-dt * (clock < 2.5 ? 1.1 : 2.6));
+  cam.pos.lerp(cam.tPos, k); cam.look.lerp(cam.tLook, k);
+  camera.position.copy(cam.pos);
+  if (!REDUCED) {
+    const drift = 1 - Math.min(1, flock.reduce((m, f) => Math.max(m, f.dimK), 0) * 1.2);
+    const ang = Math.sin(clock * 0.06) * 0.1 * drift, dx = camera.position.x - cam.look.x, dz = camera.position.z - cam.look.z;
+    camera.position.x = cam.look.x + dx * Math.cos(ang) + dz * Math.sin(ang); camera.position.z = cam.look.z - dx * Math.sin(ang) + dz * Math.cos(ang) - Math.sin(clock * 0.045) * 0.35 * drift;
+    camera.position.y += Math.sin(clock * 0.08 + 1) * 0.08 * drift;
+    camera.position.x += pointer.sx * 0.35; camera.position.y += pointer.sy * 0.15;
+  }
+  camera.lookAt(cam.look);
+  { const d = camera.position.distanceTo(cam.look); scene.fog.near = d + 3; scene.fog.far = d + 24; }
+  tintGoal.copy(lin(MODE_TINT[S.mode.label] || "#5a5a66"));
+  if (S.focus != null) tintGoal.lerp(flock[S.focus].col, 0.6);
+  tintGoal.lerp(fogTint.setScalar(tintGoal.r * 0.3 + tintGoal.g * 0.59 + tintGoal.b * 0.11), 0.3);
+  TINT.lerp(tintGoal.multiplyScalar(0.07), REDUCED ? 1 : 1 - Math.exp(-dt * 1.5));
+  scene.fog.color.copy(BG).add(fogTint.copy(TINT).multiplyScalar(1.1));
+
+  // the sweep: 6 s across, then a pause
+  { const per = 11, tt = (clock - 3) % per, k2 = tt / 6, on = clock > 3 && tt < 6 && !REDUCED && S.focus == null;
+    const x = -11 + 22 * (k2 * k2 * (3 - 2 * k2)); sweep.position.x = x; sweep.target.position.x = x * 0.92;
+    sweep.intensity = on ? Math.sin(Math.PI * k2) * 9 : 0; }
+  spot.intensity = 1.5 * (REDUCED ? 1 : Math.min(1, clock / 1.8));
+  // the light follows the chosen bird
+  { const tx = S.focus != null ? flock[S.focus].base.x : 0, kk = REDUCED ? 1 : 1 - Math.exp(-dt * 2.2); spot.position.x += (tx - spot.position.x) * kk; spot.target.position.x = spot.position.x; spot.angle += ((S.focus != null ? 0.32 : 0.5) - spot.angle) * kk; }
+  // birds
+  rankFlock();
+  flock.forEach(f => { const portrait = innerWidth / innerHeight < 0.9; if (portrait) f.target.set((f.rank % 3 - 1) * 1.62, 0, f.rank < 3 ? 1.2 : -2.3); else f.target.set(...V_SLOTS[f.rank]); f.base.lerp(f.target, REDUCED ? 1 : 1 - Math.exp(-dt * 0.9)); });
+  flock.forEach((f, i) => {
+    const st = statusOf(f.b.id), focused = S.focus === i, hov = hover === i;
+    f.pauseK += ((st === "paused" || st === "asleep" ? 1 : 0) - f.pauseK) * (1 - Math.exp(-dt * 3));
+    f.look += ((focused || hov || cue === i ? 1 : 0) - f.look) * (1 - Math.exp(-dt * 4));
+    f.dimK += ((S.focus != null && !focused ? 1 : 0) - f.dimK) * (1 - Math.exp(-dt * 3));
+    const ek = REDUCED ? 1 : Math.max(0, Math.min(1, (clock - 0.6 - i * 0.13) / 1.1)), enter = 0, pop = REDUCED ? 1 : Math.max(0.001, 1 + 2.70158 * Math.pow(ek - 1, 3) + 1.70158 * Math.pow(ek - 1, 2)), introSpin = REDUCED ? 0 : (1 - ease(ek)) * -Math.PI;
+    const hk = (clock - f.hop) / (f.hopSmall ? 0.5 : 0.75);
+    const hop = hk >= 0 && hk < 1 ? Math.sin(Math.PI * hk) * (f.hopSmall ? 0.08 : 0.2) : 0;
+    const spin = hk >= 0 && hk < 1 && !f.hopSmall ? ease(hk) * Math.PI * 2 : 0;
+    const idle = REDUCED ? 0 : Math.sin(clock * 0.9 + f.phase) * 0.025;
+    const lift = 0.16 - f.pauseK * 0.12;
+    const wing = REDUCED ? 0 : Math.sin(clock * 1.25 - f.rank * 0.75);
+    const hy = lift + idle + hop + f.look * 0.12 + wing * 0.07;
+    const aside = S.focus != null ? Math.sign(i - S.focus) * (4.2 + Math.abs(i - S.focus) * 0.6) * f.dimK : 0, shrink = 1 - 0.35 * f.dimK;
+    f.holder.scale.setScalar(shrink * pop * (1 + f.look * 0.06));
+    f.holder.position.set(f.base.x + aside, (-f.s.userData.minY * SC + hy) * shrink + f.base.y + enter, f.base.z - 1.8 * f.dimK);
+    f.refl.scale.copy(f.holder.scale);
+    f.s.children[1].position.z = f.refl.children[0].children[1].position.z = GLYPH_Z + f.look * 0.1;
+    f.glow.position.set(f.holder.position.x, f.holder.position.y - SC * 1.15, f.holder.position.z + 0.3);
+    f.glow.intensity = (0.8 + f.look * 0.7 + (st === "working" ? 0.6 : 0)) * (1 - f.pauseK * 0.6) * (1 - f.dimK) * ek;
+    const ht = hy + f.base.y; f.blob.position.set(f.holder.position.x, 0.003, f.holder.position.z);
+    f.blob.material.opacity = 0.7 * Math.exp(-ht * 2.2) * (1 - f.dimK * 0.85) * Math.max(0, Math.min(1, ek * 1.4)); f.blob.scale.setScalar(1 + ht * 0.9);
+    f.track.position.set(f.base.x, 0.004, f.base.z); f.arc.position.set(f.base.x, 0.005, f.base.z);
+    const sway = REDUCED ? 0 : Math.sin(clock * 0.26 + f.phase) * 0.18;
+    const toCam = Math.atan2(camera.position.x - f.base.x, camera.position.z - f.base.z);
+    f.holder.rotation.y = THREE.MathUtils.lerp(sway + (REDUCED ? 0 : pointer.sx * 0.3), toCam + (focused && !REDUCED ? Math.sin(clock * 0.45) * 0.5 : 0), f.look) + spin + introSpin;
+    f.holder.rotation.x = REDUCED ? 0 : (-pointer.sy * 0.16 + Math.sin(clock * 0.6 + f.phase) * 0.04) * (1 - f.dimK);
+    f.holder.rotation.z = REDUCED ? 0 : Math.sin(clock * 1.25 - f.rank * 0.75 + 0.9) * 0.07 * (1 - f.look) * (1 - f.dimK);
+    f.mat.color.copy(f.col).lerp(GREY, f.pauseK * 0.8).multiplyScalar(1 - f.dimK * 0.92);
+    f.gmat.emissiveIntensity = (st === "working" ? 0.1 + (REDUCED ? 0 : 0.06 * Math.sin(clock * 2.2 + f.phase)) : 0) * (1 - f.dimK);
+    f.refl.position.copy(f.holder.position); f.refl.rotation.copy(f.holder.rotation);
+    const p = st === "paused" ? null : progressOf(f.b.id);
+    setArc(f, p ? p.frac : 0);
+    f.track.material.opacity = f.look * (S.focus == null ? 0.14 : 0) * ek;
+    f.arc.material.opacity = 0.95 * f.look * (S.focus == null ? 1 : 0) * ek; f.tip.material.opacity = f.arc.material.opacity;
+  });
+
+  ui.slow += dt;
+  placeTags();
+  if (ui.dirty || ui.slow > 0.25) { renderTags(); ui.dirty = false; ui.slow = 0; }
+  {
+    const lead = flock.find(f => f.rank === 0), foc = S.focus != null ? flock[S.focus] : lead;
+    const fd = camera.position.distanceTo(foc.holder.position); dof.uniforms.focus.value += (fd - dof.uniforms.focus.value) * (1 - Math.exp(-dt * 4)); }
+  finish.uniforms.uT.value = clock;
+  composer.render(dt);
+  requestAnimationFrame(frame);
+}
+addEventListener("resize", () => { layout(true); renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); finish.uniforms.uRes.value.set(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); layout(); });
+// Nest: centre the flock on the command bar's axis (the window's centre, 64 pt right of it past the rail)
+const DOCK_SHIFT = 64;
+function centreOnDock() { camera.setViewOffset(innerWidth, innerHeight, -DOCK_SHIFT, 0, innerWidth, innerHeight); }
+centreOnDock();
+addEventListener("resize", centreOnDock);
+document.addEventListener("visibilitychange", () => { last = performance.now(); });
+requestAnimationFrame(frame);
+</script>
+</body></html>
