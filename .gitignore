@@ -6,3 +6,5 @@ DerivedData/
 .swiftpm/
 *.xcscmblueprint
 build/
+logs/
+.autorun-stop
