@@ -1,6 +1,6 @@
 import Foundation
 
-/// Turns one task into a tested branch: a fresh branch, one Claude Code session, the summary block, then the suite.
+/// Turns one task into a tested branch: a fresh branch, one Claude Code session, the summary block, the suite, then the checks.
 public struct ManualRunner: Sendable {
     /// The repository the task is built in.
     public let repository: URL
@@ -69,8 +69,14 @@ public struct ManualRunner: Sendable {
 
         watch("\(task.id): running the suite")
         let suite = try await shell.run(tests, in: repository, watch: watch)
-        let held = suite.succeeded ? nil : "the suite failed when the runner ran it"
-        return finish(task, summary: summary, testsPassed: suite.succeeded, held: held)
+        guard suite.succeeded else {
+            return finish(task, summary: summary, testsPassed: false, held: "the suite failed when the runner ran it")
+        }
+
+        watch("\(task.id): checking the branch")
+        let problems = DoneChecks.problems(in: try await BranchDiff(base: base, branch: task.branch, in: repository))
+        let held = problems.isEmpty ? nil : "the branch failed its checks: " + problems.joined(separator: " | ")
+        return finish(task, summary: summary, testsPassed: true, held: held)
     }
 
     private func switchToBranch(of task: QueueTask) async throws {
