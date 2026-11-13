@@ -14,16 +14,30 @@ enum Snapshot {
 
     static let failures = FileManager.default.temporaryDirectory.appending(path: "NestSnapshots")
 
-    static func expect(_ view: some View, named name: String, sourceLocation: SourceLocation = #_sourceLocation) throws {
+    /// How the view is turned into pixels.
+    enum Rendering {
+        /// SwiftUI's own renderer: exact, but draws AppKit-backed views such as text fields as placeholders.
+        case swiftUI
+        /// A real window's backing view: draws AppKit-backed views too.
+        case window
+    }
+
+    static func expect(
+        _ view: some View,
+        named name: String,
+        rendering: Rendering = .swiftUI,
+        sourceLocation: SourceLocation = #_sourceLocation
+    ) throws {
         try NestFont.registerBundledFonts()
         let content = view
             .padding(NestSpace.s4)
             .background(Color(NestColor.surface0))
             .environment(\.colorScheme, .dark)
-        let renderer = ImageRenderer(content: content)
-        renderer.scale = 2
-        let image = try #require(renderer.cgImage, "\(name) did not render", sourceLocation: sourceLocation)
-        let png = try #require(NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]), sourceLocation: sourceLocation)
+        let png = try #require(
+            rendering == .swiftUI ? renderSwiftUI(content) : renderInWindow(content),
+            "\(name) did not render",
+            sourceLocation: sourceLocation
+        )
         let reference = references.appending(path: "\(name).png")
         guard let expected = try? Data(contentsOf: reference) else {
             Issue.record("No reference for \(name). New image: \(try save(png, name))", sourceLocation: sourceLocation)
@@ -32,6 +46,26 @@ enum Snapshot {
         if let difference = try difference(png, expected) {
             Issue.record("\(name) differs from its reference (\(difference)). New image: \(try save(png, name))", sourceLocation: sourceLocation)
         }
+    }
+
+    private static func renderSwiftUI(_ content: some View) -> Data? {
+        let renderer = ImageRenderer(content: content)
+        renderer.scale = 2
+        guard let image = renderer.cgImage else { return nil }
+        return NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+    }
+
+    private static func renderInWindow(_ content: some View) -> Data? {
+        let host = NSHostingView(rootView: content)
+        host.frame.size = host.fittingSize
+        let window = NSWindow(contentRect: host.frame, styleMask: .borderless, backing: .buffered, defer: false)
+        window.appearance = NSAppearance(named: .darkAqua)
+        window.contentView = host
+        host.layoutSubtreeIfNeeded()
+        RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+        guard let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { return nil }
+        host.cacheDisplay(in: host.bounds, to: rep)
+        return rep.representation(using: .png, properties: [:])
     }
 
     private static func save(_ png: Data, _ name: String) throws -> String {
