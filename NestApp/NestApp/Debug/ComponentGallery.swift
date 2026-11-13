@@ -21,6 +21,13 @@ struct ComponentGallery: View {
     @State private var selection = CardSelection<String>(selected: "b")
     @State private var draft = ChatDraft()
     @State private var showsFloating = false
+    @State private var lastPublished = "Nothing published yet"
+
+    private let activity: [NestEvent] = {
+        let events = (try? DemoDay.events()) ?? []
+        let wanted = ["Swift merged N1-13 with 17 new tests", "Swift merged N1-14 with 9 new tests", "Swift rolled back the N1-14 merge"]
+        return wanted.compactMap { summary in events.first { $0.summary == summary } }
+    }()
 
     var body: some View {
         ScrollView {
@@ -44,6 +51,7 @@ struct ComponentGallery: View {
                     Button("Show floating panel") { showsFloating = true }
                         .buttonStyle(NestButtonStyle(.secondary))
                 }
+                section("Activity rows", id: "gallery.activity-row") { activityRows }
                 section("Chat", id: "gallery.chat-bubble") {
                     VStack(alignment: .leading, spacing: NestSpace.s3) {
                         ChatBubble(ChatMessage(id: "1", sender: .bird(.wren), text: "Moved swerve-pod-v4.step to Robotics / CAD."))
@@ -76,6 +84,22 @@ struct ComponentGallery: View {
                     Button("Disabled") {}.buttonStyle(NestButtonStyle(.primary, size: size)).disabled(true)
                 }
             }
+        }
+    }
+
+    private var activityRows: some View {
+        let ledger = UndoLedger(events: activity)
+        return VStack(alignment: .leading, spacing: NestSpace.s1) {
+            ForEach(activity, id: \.id) { event in
+                ActivityRow(event, isUndone: ledger.isUndone(event.id)) { ask in
+                    let target = if case .string(let id) = ask.data["target"] { id } else { "" }
+                    lastPublished = "\(ask.topic.rawValue) \(target)"
+                }
+            }
+            Text(lastPublished)
+                .nestFont(.code)
+                .foregroundStyle(Color(NestColor.textMuted))
+                .accessibilityIdentifier("gallery.last-published")
         }
     }
 
