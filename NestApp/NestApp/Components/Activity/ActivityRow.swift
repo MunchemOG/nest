@@ -56,6 +56,7 @@ struct ActivityRow: View {
                     .foregroundStyle(Color(isUndone ? NestColor.textMuted : NestColor.textPrimary))
                     .lineLimit(isCompact ? 2 : nil)
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel(event.summary)
                 Text(meta(in: timeZone))
                     .nestFont(.caption)
                     .monospacedDigit()
