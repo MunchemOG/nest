@@ -28,7 +28,6 @@ If these docs disagree, `CLAUDE.md` wins, then `docs/queue.md`, then the rest.
 - The look is final (approved 2026-11-12). Read `docs/design-status.md` before any UI work, and match the approved prototype `design/reference/home.html`. Every value still comes from `design/tokens.json`.
 - Done: all of Phase 1 (N1-01 to N1-24) and PB-01 to PB-06.
 - Order: S2-01 to S2-16, as listed in `docs/queue.md`.
-- `scripts/autorun.sh` runs the queue unattended, one session per task, model chosen by `scripts/autorun-tiers.txt`. In those runs, test with `scripts/test.sh unit` (never the UI tests: they take over Mithun's screen) and do not merge; the runner runs the whole suite while the Mac is idle and merges on green.
 - `docs/event-bus.md` is the contract for events. Code against it exactly.
 
 ## How a task runs
