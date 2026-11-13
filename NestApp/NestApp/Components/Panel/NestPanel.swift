@@ -4,19 +4,21 @@ import SwiftUI
 /// A rounded panel that holds rows, cards or controls.
 struct NestPanel<Content: View>: View {
     let kind: NestPanelKind
+    let padding: Double
     let content: Content
 
     @Environment(\.pixelLength) private var hairline
 
-    init(_ kind: NestPanelKind = .solid, @ViewBuilder content: () -> Content) {
+    init(_ kind: NestPanelKind = .solid, padding: Double = NestSpace.s4, @ViewBuilder content: () -> Content) {
         self.kind = kind
+        self.padding = padding
         self.content = content()
     }
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: NestRadius.xl, style: .continuous)
         content
-            .padding(NestSpace.s4)
+            .padding(padding)
             .background {
                 ZStack {
                     if kind.usesBackdropBlur {
