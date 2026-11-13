@@ -26,7 +26,7 @@ struct HeadlineView: View {
 
     private var attentionText: AttributedString {
         guard let attention = headline.attention else { return "" }
-        var text = AttributedString((headline.sub.isEmpty ? "" : " ") + attention)
+        var text = AttributedString((headline.sub.isEmpty ? "" : " ") + attention + " →")
         text.foregroundColor = Color(NestColor.clay)
         return text
     }

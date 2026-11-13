@@ -1,3 +1,4 @@
+import Foundation
 import NestKit
 
 /// The few facts the Home headline is made from, kept up to date event by event.
@@ -10,6 +11,12 @@ struct HeadlineFacts: Hashable, Sendable {
     private(set) var inFlow = false
     /// Where you are: `here`, `away`, `stranger` or `guest`.
     private(set) var presence: String?
+    /// The Mac's mode, such as `Morning`, `Focus` or `Night`.
+    private(set) var mode: String?
+    /// When the current mode began.
+    private(set) var modeSince: Date?
+    /// Whether the current mode turned notifications off.
+    private(set) var notificationsOff = false
 
     private var runTasks: [String] = []
 
@@ -25,8 +32,11 @@ struct HeadlineFacts: Hashable, Sendable {
             guard let task = event.data["task"]?.string, let index = runTasks.firstIndex(of: task) else { return }
             building = runTasks.indices.contains(index + 1) ? runTasks[index + 1] : nil
         case .wrenModeChanged:
-            let isFocus = event.data["to"]?.string == "Focus"
-            focusUntil = isFocus ? event.data["settings"]?.object?["until"]?.string : nil
+            mode = event.data["to"]?.string
+            modeSince = event.ts
+            let settings = event.data["settings"]?.object
+            notificationsOff = settings?["notifications"]?.string == "off"
+            focusUntil = mode == "Focus" ? settings?["until"]?.string : nil
         case .owlFlowChanged:
             inFlow = event.data["to"]?.bool ?? false
         case .owlPresenceChanged:

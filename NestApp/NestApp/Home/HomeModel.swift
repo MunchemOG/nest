@@ -15,6 +15,10 @@ final class HomeModel {
     private(set) var events: [NestEvent] = []
     private(set) var facts = HeadlineFacts()
     private var ledger = UndoLedger(events: [])
+    private var dismissed: Set<String> = []
+
+    /// The newest event's time: "now" while the demo day replays.
+    var now: Date? { events.last?.ts }
 
     /// The newest events, newest first.
     var feed: [NestEvent] { Array(events.suffix(Self.feedLength).reversed()) }
@@ -24,7 +28,7 @@ final class HomeModel {
         let answered = Set(events.filter { $0.topic == .crowPitchAnswered }.compactMap { $0.data["pitch"]?.string })
         return events
             .filter { $0.attention != .none && [.pitch, .report].contains($0.kind) }
-            .filter { !answered.contains($0.id) }
+            .filter { !answered.contains($0.id) && !dismissed.contains($0.id) }
             .reversed()
     }
 
@@ -47,6 +51,26 @@ final class HomeModel {
     /// Puts one of your own events on the timeline. Until the bus exists, it goes straight to Home.
     func publish(_ event: NestEvent) {
         receive(event)
+    }
+
+    /// Answers a card in the needs-you stack: tells its bird, if the answer is for a bird, and puts the card away.
+    func answer(_ event: NestEvent, with action: NeedsYouAction) {
+        if action.tellsTheBird, let bird = event.sender.bird {
+            publish(.appAsk(to: bird.rawValue, text: action.title))
+        }
+        dismissed.insert(event.id)
+    }
+
+    /// Sends what you typed in the command bar to `bird`, the bird named at its start, or everyone.
+    func send(_ text: String, to bird: Bird?) {
+        let (recipient, words) = CommandText.parse(text, picked: bird)
+        guard !words.isEmpty else { return }
+        publish(.appAsk(to: recipient, text: words))
+    }
+
+    /// Asks Wren to switch to a mode.
+    func switchMode(to mode: String) {
+        publish(.appAsk(to: Bird.wren.rawValue, text: "\(mode) mode"))
     }
 
     /// Hears every event from `source` until it finishes.

@@ -27,17 +27,20 @@ struct FlockFormationTests {
         #expect(FlockFormation.slot(0) == .zero)
     }
 
-    @Test func armsAlternateAndFanBack() {
+    @Test func armsAlternateAndFanBackAndUp() {
         let left = FlockFormation.slot(1), right = FlockFormation.slot(2)
         #expect(left.x == -right.x && left.x < 0)
         #expect(left.z == right.z && left.z < 0)
+        #expect(left.y > 0)
         #expect(FlockFormation.slot(3).z < left.z)
         #expect(FlockFormation.slot(3).x < left.x)
+        #expect(FlockFormation.slot(3).y > left.y)
     }
 
     @Test func stepsComeFromTokens() {
-        #expect(FlockFormation.slot(1) == SIMD3(Float(-NestSpace.s10), 0, Float(-NestSpace.s10)))
+        #expect(FlockFormation.slot(1) == SIMD3(Float(-(NestSpace.s10 + NestSpace.s8)), Float(NestSpace.s5), Float(-NestSpace.s9)))
         #expect(FlockFormation.tileSide == Float(NestSpace.s9))
+        #expect(FlockFormation.tileDepth == Float(NestSpace.s6))
     }
 
     @Test func theWaveRunsDownEachArm() {

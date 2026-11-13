@@ -11,6 +11,7 @@ enum FlockSceneRenderer {
     static func render(statuses: [Bird: BirdStatus], size: CGSize) async throws -> NSImage {
         let view = ARView(frame: CGRect(origin: .zero, size: size))
         view.environment.background = .color(NSColor(NestColor.sceneVoid))
+        view.environment.lighting.intensityExponent = FlockSceneStyle.environmentLightExponent
         let stage = try await FlockStage()
         stage.arrange(statuses, animated: false)
         view.scene.addAnchor(stage.root)
