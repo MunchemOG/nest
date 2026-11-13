@@ -13,6 +13,7 @@ struct HeadlineView: View {
                 .nestFont(.displayL)
                 .foregroundStyle(Color(NestColor.textPrimary))
                 .contentTransition(.opacity)
+                .accessibilityLabel(headline.main)
             if !headline.sub.isEmpty || headline.attention != nil {
                 (Text(Self.colouringBirdNames(headline.sub)) + Text(attentionText))
                     .nestFont(.bodyL)
@@ -22,7 +23,7 @@ struct HeadlineView: View {
         .frame(maxWidth: HomeLayout.headline, alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
         .animation(.nest(NestMotion.slow), value: headline)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("home.headline")
     }
 
