@@ -20,3 +20,10 @@ public struct QueueTask: Sendable, Equatable {
     /// The git branch the task is built on.
     public var branch: String { "task/\(id)" }
 }
+
+extension QueueTask {
+    /// The task as the runner builds it, from its place in Swift's queue.
+    public init(_ queued: QueuedTask) {
+        self.init(id: queued.id, goal: queued.goal, doneMeans: queued.doneMeans, needs: queued.needs.joined(separator: ", "))
+    }
+}

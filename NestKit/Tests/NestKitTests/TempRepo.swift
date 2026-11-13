@@ -1,7 +1,7 @@
 import Foundation
 @testable import NestKit
 
-/// A throwaway git repository in the temp folder, with one commit on main and a stand-in for Claude Code.
+/// A throwaway git repository in the temp folder, with one commit on main (a README and the rules) and a stand-in for Claude Code.
 struct TempRepo {
     let url: URL
 
@@ -13,6 +13,7 @@ struct TempRepo {
         try await git("config", "user.email", "tests@nest.invalid")
         try await git("config", "commit.gpgsign", "false")
         try "A nest.\n".write(to: url.appending(path: "README.md"), atomically: true, encoding: .utf8)
+        try "# Rules\n".write(to: url.appending(path: "CLAUDE.md"), atomically: true, encoding: .utf8)
         try await git("add", ".")
         try await git("commit", "-q", "-m", "Start")
     }
