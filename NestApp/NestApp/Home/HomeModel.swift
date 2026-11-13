@@ -44,6 +44,9 @@ final class HomeModel {
             .reversed()
     }
 
+    /// The accent primary controls wear, from Wren's look.
+    var accent: NestAccent { NestAccent(name: facts.accent) }
+
     /// The statement at the top of Home.
     var headline: Headline {
         Headline(facts: facts, waiting: needsYou.count, now: now, asleep: Bird.allCases.allSatisfy { flock.status(of: $0) == .asleep })

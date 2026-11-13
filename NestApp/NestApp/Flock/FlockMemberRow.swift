@@ -13,12 +13,15 @@ struct FlockMemberRow: View {
 
     private var reduceMotion: Bool { reduceMotionOverride ?? systemReduceMotion }
 
+    /// Whether the tile lifts when the bird acts; under reduced motion only the colour wash shows.
+    static func lifts(reduceMotion: Bool) -> Bool { !reduceMotion }
+
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: NestRadius.lg, style: .continuous)
         HStack(alignment: .top, spacing: NestSpace.s4) {
             BirdAvatar(bird, size: .medium, state: BirdAvatarState(status))
                 .phaseAnimator([false, true], trigger: reactions) { avatar, lifted in
-                    avatar.offset(y: lifted && !reduceMotion ? NestEffect.liftHover : 0)
+                    avatar.offset(y: lifted && Self.lifts(reduceMotion: reduceMotion) ? NestEffect.liftHover : 0)
                 } animation: { _ in
                     .nest(NestMotion.base)
                 }

@@ -12,6 +12,8 @@ struct StudioState: Hashable, Sendable {
     /// The Mac's mode and, in Focus, when it ends.
     var mode = "Night"
     var until: String?
+    /// Whether the studio should hold still (reduced motion).
+    var reduceMotion = false
 
     /// The state as JavaScript object literal text.
     var script: String {
@@ -20,6 +22,7 @@ struct StudioState: Hashable, Sendable {
             "tagLines": tagLines,
             "progress": progress,
             "mode": ["label": mode, "until": until.map { $0 as Any } ?? NSNull()],
+            "reduceMotion": reduceMotion,
         ]
         let data = (try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])) ?? Data("{}".utf8)
         return String(decoding: data, as: UTF8.self)

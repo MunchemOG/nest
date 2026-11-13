@@ -9,8 +9,12 @@ struct ModeSwitch: View {
     static let modes: [(name: String, symbol: String)] = [("Morning", "sun.max"), ("Focus", "scope"), ("Night", "moon")]
 
     @Namespace private var knob
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
+    @Environment(\.reduceMotionOverride) private var reduceMotionOverride
     @Environment(\.pixelLength) private var hairline
+
+    /// Whether the white knob slides to the new mode; under reduced motion it just appears there.
+    static func knobSlides(reduceMotion: Bool) -> Bool { !reduceMotion }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -40,6 +44,6 @@ struct ModeSwitch: View {
         .background { Capsule().fill(Color(NestColor.glass)) }
         .overlay { Capsule().strokeBorder(Color(NestColor.line), lineWidth: hairline) }
         .nestShadow(.panel, in: Capsule())
-        .animation(reduceMotion ? nil : .nest(NestMotion.slow), value: mode)
+        .animation(Self.knobSlides(reduceMotion: reduceMotionOverride ?? systemReduceMotion) ? .nest(NestMotion.slow) : nil, value: mode)
     }
 }

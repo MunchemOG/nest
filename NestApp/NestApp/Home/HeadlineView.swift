@@ -5,6 +5,8 @@ import SwiftUI
 struct HeadlineView: View {
     let headline: Headline
 
+    @Environment(\.nestAccent) private var accent
+
     var body: some View {
         VStack(alignment: .leading, spacing: NestSpace.s3) {
             Text(Self.colouringBirdNames(headline.main))
@@ -27,7 +29,7 @@ struct HeadlineView: View {
     private var attentionText: AttributedString {
         guard let attention = headline.attention else { return "" }
         var text = AttributedString((headline.sub.isEmpty ? "" : " ") + attention + " →")
-        text.foregroundColor = Color(NestColor.clay)
+        text.foregroundColor = Color(accent.fill)
         return text
     }
 

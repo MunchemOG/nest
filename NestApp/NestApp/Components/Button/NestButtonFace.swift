@@ -9,6 +9,7 @@ struct NestButtonFace<Label: View>: View {
     let state: NestButtonState
 
     @Environment(\.pixelLength) private var hairline
+    @Environment(\.nestAccent) private var accent
 
     init(variant: NestButtonVariant, size: NestButtonSize, state: NestButtonState, @ViewBuilder label: () -> Label) {
         self.label = label()
@@ -18,7 +19,7 @@ struct NestButtonFace<Label: View>: View {
     }
 
     var body: some View {
-        let palette = NestButtonPalette(variant, state)
+        let palette = NestButtonPalette(variant, state, accent: accent)
         label
             .nestFont(size.font)
             .lineLimit(1)

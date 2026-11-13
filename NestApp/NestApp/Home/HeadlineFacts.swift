@@ -17,6 +17,8 @@ struct HeadlineFacts: Hashable, Sendable {
     private(set) var mode: String?
     /// When the current mode began.
     private(set) var modeSince: Date?
+    /// The accent Wren's look chose, such as `clay` or `lagoon`.
+    private(set) var accent: String?
     /// Whether the current mode turned notifications off.
     private(set) var notificationsOff = false
 
@@ -39,6 +41,8 @@ struct HeadlineFacts: Hashable, Sendable {
             let settings = event.data["settings"]?.object
             notificationsOff = settings?["notifications"]?.string == "off"
             focusUntil = mode == "Focus" ? settings?["until"]?.string : nil
+        case .wrenLookChanged:
+            accent = event.data["accent"]?.string
         case .owlFlowChanged:
             inFlow = event.data["to"]?.bool ?? false
             flowSince = inFlow ? event.ts : nil

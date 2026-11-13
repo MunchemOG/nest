@@ -9,6 +9,15 @@ struct StudioView: NSViewRepresentable {
     /// Each bird's newest action, so the studio can make it hop once when a new one arrives.
     let latestActions: [Bird: NestEvent]
 
+    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
+    @Environment(\.reduceMotionOverride) private var reduceMotionOverride
+
+    private var shownState: StudioState {
+        var state = state
+        state.reduceMotion = reduceMotionOverride ?? systemReduceMotion
+        return state
+    }
+
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeNSView(context: Context) -> WKWebView {
@@ -21,12 +30,12 @@ struct StudioView: NSViewRepresentable {
         view.setAccessibilityElement(false)
         Self.loadLocally(view)
         context.coordinator.view = view
-        context.coordinator.update(state: state, latestActions: latestActions)
+        context.coordinator.update(state: shownState, latestActions: latestActions)
         return view
     }
 
     func updateNSView(_ view: WKWebView, context: Context) {
-        context.coordinator.update(state: state, latestActions: latestActions)
+        context.coordinator.update(state: shownState, latestActions: latestActions)
     }
 
     /// Loads the studio with a rule that blocks every request except files inside the app,

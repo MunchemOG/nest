@@ -45,6 +45,8 @@ struct AppFrame: View {
         }
         .animation(.nest(NestMotion.base), value: screen)
         .focusedSceneValue(\.nestScreen, $screen)
+        .environment(\.nestAccent, home.accent)
+        .animation(.nest(NestMotion.base), value: home.accent)
         .task {
             // `-NestSource empty` starts with no events at all, as the app will before the birds exist.
             guard UserDefaults.standard.string(forKey: "NestSource") != "empty", let events = try? DemoDay.events() else { return }

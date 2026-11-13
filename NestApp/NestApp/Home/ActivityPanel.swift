@@ -8,6 +8,9 @@ struct ActivityPanel: View {
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @Environment(\.reduceMotionOverride) private var reduceMotionOverride
 
+    /// Whether new rows slide in; under reduced motion they only fade.
+    static func rowsSlide(reduceMotion: Bool) -> Bool { !reduceMotion }
+
     var body: some View {
         let reduceMotion = reduceMotionOverride ?? systemReduceMotion
         NestPanel(.solid, padding: NestSpace.s2) {
@@ -28,7 +31,7 @@ struct ActivityPanel: View {
                 .padding(.vertical, NestSpace.s2)
                 ForEach(model.feed.prefix(3), id: \.id) { event in
                     ActivityRow(event, isUndone: model.isUndone(event), isCompact: true, publish: model.publish)
-                        .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
+                        .transition(Self.rowsSlide(reduceMotion: reduceMotion) ? .opacity.combined(with: .move(edge: .top)) : .opacity)
                 }
                 if model.feed.isEmpty {
                     Text("Nothing yet today.")

@@ -7,6 +7,7 @@ struct NeedsYouPanel: View {
     let answer: (NestEvent, NeedsYouAction) -> Void
 
     @Environment(\.timeZone) private var timeZone
+    @Environment(\.nestAccent) private var accent
 
     var body: some View {
         NestPanel(.solid, padding: NestSpace.s2) {
@@ -20,10 +21,10 @@ struct NeedsYouPanel: View {
                         Text("\(events.count)")
                             .nestFont(.caption)
                             .monospacedDigit()
-                            .foregroundStyle(Color(NestColor.onClay))
+                            .foregroundStyle(Color(accent.onFill))
                             .padding(.horizontal, NestSpace.s2)
                             .frame(minWidth: NestSpace.s5)
-                            .background { Capsule().fill(Color(NestColor.clay)) }
+                            .background { Capsule().fill(Color(accent.fill)) }
                     }
                 }
                 .padding(.horizontal, NestSpace.s3)

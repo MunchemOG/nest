@@ -8,6 +8,7 @@ struct NestCardFace<Content: View>: View {
     let content: Content
 
     @Environment(\.pixelLength) private var hairline
+    @Environment(\.nestAccent) private var accent
 
     init(bird: Bird? = nil, state: NestCardState = .rest, @ViewBuilder content: () -> Content) {
         self.bird = bird
@@ -20,7 +21,7 @@ struct NestCardFace<Content: View>: View {
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: NestRadius.lg, style: .continuous)
-        let palette = NestCardPalette(state)
+        let palette = NestCardPalette(state, accent: accent)
         content
             .padding(NestSpace.s5)
             .background {

@@ -80,7 +80,7 @@ const cap = s => s.replace(/^./, c => c.toUpperCase());
 const base = p => String(p).split("/").pop();
 const dir = p => { const a = String(p).replace(/^~\/(Mithu\/)?/, "").split("/"); a.pop(); return a.join(" / ") || "Home"; };
 const ease = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
-const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // ───────────────────────── bridge: the Nest app supplies the state (Swift calls nest.set and nest.hop)
 const S = { focus: null, mode: { label: "Night", until: null }, statuses: {}, tagLines: {}, progress: {} };
@@ -89,7 +89,7 @@ function progressOf(id) { const f = S.progress[id]; return f == null ? null : { 
 function tagOf(id) { return S.tagLines[id] || ""; }
 const short = ev => ev.summary.replace(new RegExp("^" + (BI[ev.bird] != null ? B(ev.bird).name : "") + "('s)? "), "");
 window.nest = {
-  set(state) { Object.assign(S, state); if (typeof ui !== "undefined") ui.dirty = true; },
+  set(state) { Object.assign(S, state); if ("reduceMotion" in state) REDUCED = state.reduceMotion; if (typeof ui !== "undefined") ui.dirty = true; },
   hop(bird, summary) { const i = BI[bird]; if (i == null) return; birdEvent(i, summary ? { bird, summary } : null); if (typeof ui !== "undefined") ui.dirty = true; },
 };
 
