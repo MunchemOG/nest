@@ -26,8 +26,9 @@ If these docs disagree, `CLAUDE.md` wins, then `docs/queue.md`, then the rest.
 ## Right now
 
 - The look is final (approved 2026-11-12). Read `docs/design-status.md` before any UI work, and match the approved prototype `design/reference/home.html`. Every value still comes from `design/tokens.json`.
-- Done: N1-01, N1-02, N1-04, N1-05, N1-13 to N1-16 and PB-01 to PB-06.
-- Order: N1-03, N1-06, N1-07, N1-08, N1-09, N1-10, N1-11, N1-12, N1-17, N1-18, N1-19, N1-20, N1-21, N1-22, N1-23, N1-24.
+- Done: all of Phase 1 (N1-01 to N1-24) and PB-01 to PB-06.
+- Order: S2-01 to S2-16, as listed in `docs/queue.md`.
+- `scripts/autorun.sh` runs the queue unattended, one session per task, model chosen by `scripts/autorun-tiers.txt`. In those runs, merge on green yourself (step 5) without waiting.
 - `docs/event-bus.md` is the contract for events. Code against it exactly.
 
 ## How a task runs
