@@ -13,14 +13,14 @@ final class TimelineUITests: XCTestCase {
         app.activate()
         app.buttons["timeline.filter.owl"].click()
         let owlOnly = NSPredicate(format: "count > 0")
-        expectation(for: owlOnly, evaluatedWith: app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Owl '")))
+        expectation(for: owlOnly, evaluatedWith: app.staticTexts.matching(NSPredicate(format: "value BEGINSWITH 'Owl '")))
         waitForExpectations(timeout: 5)
-        XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Wren moved'")).count, 0)
+        XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "value BEGINSWITH 'Wren moved'")).count, 0)
         app.buttons["timeline.filter.all"].click()
         let search = app.textFields["timeline.search"]
         search.click()
         search.typeText("match-sheet-q13")
         XCTAssertTrue(app.staticTexts["Wren moved match-sheet-q13.csv to Robotics / Scouting"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Owl '")).count, 0)
+        XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "value BEGINSWITH 'Owl '")).count, 0)
     }
 }
