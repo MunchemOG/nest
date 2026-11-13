@@ -23,5 +23,16 @@ struct NestAppApp: App {
         WindowGroup {
             ContentView()
         }
+        #if DEBUG
+        .commands {
+            CommandMenu("Debug") { GalleryMenuItem() }
+        }
+        #endif
+
+        #if DEBUG
+        Window("Component Gallery", id: ComponentGallery.windowID) {
+            ComponentGallery()
+        }
+        #endif
     }
 }
