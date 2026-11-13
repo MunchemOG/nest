@@ -30,6 +30,8 @@ struct AppFrame: View {
             Group {
                 if screen == .home {
                     HomeScreen(model: home)
+                } else if screen == .activity {
+                    TimelineScreen(model: home)
                 } else {
                     ScreenPlaceholder(screen: screen)
                 }
