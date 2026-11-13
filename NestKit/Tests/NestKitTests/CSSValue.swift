@@ -28,6 +28,14 @@ enum CSSValue {
         return value
     }
 
+    /// `-0.01em`.
+    static func em(_ text: String) throws -> Double {
+        guard text.hasSuffix("em"), let value = Double(text.dropLast(2)) else {
+            throw Failure(description: "not an em length: \(text)")
+        }
+        return value
+    }
+
     /// `80ms`.
     static func duration(_ text: String) throws -> Duration {
         guard text.hasSuffix("ms"), let value = Int(text.dropLast(2)) else {
