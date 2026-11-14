@@ -16,6 +16,8 @@ final class HomeModel {
     private(set) var facts = HeadlineFacts()
     private var ledger = UndoLedger(events: [])
     private var dismissed: Set<String> = []
+    /// Where events marked `ping` go to interrupt you; nil sends nothing.
+    var pings: CriticalPings?
     /// The bird whose close-up is open, if any. Only Swift has one so far.
     var closeUp: Bird?
     /// Swift's page, made the first time its close-up opens.
@@ -108,6 +110,7 @@ final class HomeModel {
 
     /// Applies one event.
     func receive(_ event: NestEvent) {
+        if let pings, event.attention == .ping { Task { await pings.receive(event) } }
         events.append(event)
         flock.receive(event)
         facts.apply(event)
