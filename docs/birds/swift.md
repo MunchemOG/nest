@@ -16,7 +16,7 @@ A calm, methodical engineer that cares more about working code than impressive c
 |---|---|
 | Task queue | Tasks come from you or Crow (Crow's rewritten in plan mode first); each has a goal and a "done means" test |
 | Runs | Drives the official Claude Code tool, one small task per session. Runs whenever its usage forecast says you won't need your limits (often nights, weekday mornings), stands down the moment Owl sees you sit down |
-| House rules | Tests must pass; UI built only from the component library; touches only the Nest's code, never other projects; own git branch, never main |
+| House rules | Per project: a test command, auto-merge, strict checks; the Nest keeps tests-must-pass, UI from the component library and every check; own git branch, never main; touches only projects you assign |
 | Budget | Tracks Pro plan's five-hour and weekly limits, does most important tasks first, pauses until limits reset instead of buying credits. Protects robotics time: forecasts when you'll need Claude Code yourself (robotics weeks and other patterns in Magpie), plans work into the gaps, keeps a reserve sized to that forecast, counting everyday Claude chats too (chats and Claude Code share limits) |
 | Report | Waits for whenever you next sit down (Owl notices), not a fixed time. Shows what changed, code diff, before/after screenshots, test results, and what failed with its best guess why |
 | Auto-merge | Merges on its own when all tests pass, writing new tests per task so the safety net grows; every merge revertible in one tap; rolls back by itself if something breaks afterward |
@@ -39,7 +39,7 @@ Swift is a conductor, not a coder: coding happens inside Claude Code; Swift wrap
 6. **Bird connections:** Owl (stand down when you sit down), Magpie (richer forecasts), Crow (approved pitches into queue), Peacock (before/after captures).
 
 ## Decisions
-- **Scope:** touches only the Nest's code.
+- **Scope:** touches only the projects you assign it, each in its own folder, by that project's rules; the Nest keeps the strictest (changed 2026-11-14, `docs/superpowers/specs/2026-11-14-swift-cockpit-design.md`).
 - **Merging:** everything merges automatically once tests pass.
 - **When it runs:** whenever its usage forecast shows a gap.
 - **Pings:** only when critical (a broken Nest it couldn't roll back, or usage about to cut into your reserve). Everything else waits for the report.
