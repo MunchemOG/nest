@@ -2,23 +2,26 @@ import NestKit
 import SwiftUI
 
 /// Home, over the flock: the headline, the date and mode, focus, what needs you, live activity and the command bar.
+/// With Swift's close-up open, Claude Code takes the left, Swift's tile stays in the middle, and limits and the autobuild sit right.
 struct HomeScreen: View {
     let model: HomeModel
 
     @Environment(\.timeZone) private var timeZone
 
+    private var swiftOpen: Bool { model.closeUp == .swift && model.swiftSession != nil }
+
     var body: some View {
         Color.clear
             .overlay(alignment: .top) {
                 HStack(alignment: .top, spacing: NestSpace.s6) {
-                    HeadlineView(headline: model.headline)
+                    if !swiftOpen { HeadlineView(headline: model.headline) }
                     Spacer(minLength: 0)
                     HomeTopBar(now: model.now, mode: model.facts.mode ?? "Night", switchMode: model.switchMode)
                 }
             }
             .overlay(alignment: .topTrailing) {
                 VStack(alignment: .trailing, spacing: NestSpace.s3) {
-                    if model.closeUp == .swift, let page = model.swiftPage {
+                    if swiftOpen, let page = model.swiftPage {
                         SwiftInstruments(page: page)
                             .frame(width: HomeLayout.column)
                             .transition(.opacity)
@@ -33,21 +36,35 @@ struct HomeScreen: View {
                 .padding(.top, NestSpace.s9 - NestSpace.s4)
             }
             .overlay(alignment: .bottomLeading) {
-                ActivityPanel(model: model)
-                    .frame(width: HomeLayout.column)
-            }
-            .overlay(alignment: .leading) {
-                if model.closeUp == .swift, let page = model.swiftPage {
-                    SwiftCloseUp(page: page) { model.closeUp = nil }
+                if !swiftOpen {
+                    ActivityPanel(model: model)
                         .frame(width: HomeLayout.column)
+                }
+            }
+            .overlay(alignment: .topLeading) {
+                if swiftOpen, let session = model.swiftSession {
+                    SwiftSessionPanel(session: session, compact: false,
+                                      switchProject: { model.swiftLauncher = true },
+                                      close: { model.closeUp = nil })
+                        .frame(width: HomeLayout.session)
+                        .frame(maxHeight: .infinity)
                         .transition(.opacity)
                 }
             }
             .overlay {
-                GeometryReader { space in
-                    let dock = HomeLayout.dock(inContentWidth: space.size.width)
-                    CommandBar(send: model.send, width: dock.width)
-                        .position(x: dock.centre, y: space.size.height - NestSpace.s7 / 2 - NestSpace.s2)
+                if !swiftOpen {
+                    GeometryReader { space in
+                        let dock = HomeLayout.dock(inContentWidth: space.size.width)
+                        CommandBar(send: model.send, width: dock.width)
+                            .position(x: dock.centre, y: space.size.height - NestSpace.s7 / 2 - NestSpace.s2)
+                    }
+                }
+            }
+            .overlay {
+                if swiftOpen, model.swiftLauncher, let session = model.swiftSession {
+                    SwiftLauncher(session: session) { model.swiftLauncher = false }
+                        .padding(.vertical, NestSpace.s8)
+                        .transition(.opacity)
                 }
             }
             .accessibilityElement(children: .contain)

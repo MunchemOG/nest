@@ -82,6 +82,12 @@ public struct SessionTranscript: Sendable, Equatable {
         }
     }
 
+    /// Marks the transcript at rest: nothing streaming, Claude not working; for a session read back from history.
+    public mutating func settle() {
+        settleStreaming()
+        isWorking = false
+    }
+
     private mutating func settleStreaming() {
         if let last = items.indices.last, items[last].isStreaming { items[last].isStreaming = false }
     }

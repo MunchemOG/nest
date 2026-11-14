@@ -10,4 +10,12 @@ public struct PastSession: Sendable, Equatable, Identifiable {
     public let lastActive: Date
     /// How many messages you sent.
     public let messages: Int
+
+    /// A session with these fields.
+    public init(id: String, title: String, lastActive: Date, messages: Int) {
+        self.id = id
+        self.title = title
+        self.lastActive = lastActive
+        self.messages = messages
+    }
 }

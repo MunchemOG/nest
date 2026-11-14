@@ -29,6 +29,8 @@ final class SwiftPageModel {
     private(set) var isThinking = false
     /// The chosen project's tasks waiting or being built, in the order Swift will take them.
     private(set) var tonight: [QueuedTask] = []
+    /// The Nest's autobuild queue: tasks waiting or being built, in order.
+    private(set) var autobuild: [QueuedTask] = []
     /// The latest limits Claude reported, if any run was logged.
     private(set) var reported: LimitSnapshot?
     /// About how many more tasks fit this week under your cap, once a run is logged.
@@ -88,6 +90,8 @@ final class SwiftPageModel {
     var project: SwiftProject { settings.projects.first { $0.id == selected } ?? settings.projects[0] }
     /// The limits you set.
     var limits: SwiftLimits { settings.limits }
+    /// The project Swift builds by itself from its queue file: the Nest.
+    var nest: SwiftProject? { settings.projects.first { $0.importsQueueFile } }
 
     /// How much of the limits is used, in one line.
     var usage: String {
@@ -132,6 +136,9 @@ final class SwiftPageModel {
         tonight = ((try? await queue(for: project).tasks()) ?? []).filter { $0.state == .queued || $0.state == .claimed }
         reported = (try? await log?.entries())?.last(where: { $0.limits != nil })?.limits
         tasksLeft = await tasksLeft(underCap: nil)
+        if let nest {
+            autobuild = ((try? await queue(for: nest).tasks()) ?? []).filter { $0.state == .queued || $0.state == .claimed }
+        }
     }
 
     /// Talks about the project with id `id` from now on.
@@ -156,6 +163,25 @@ final class SwiftPageModel {
         say(reply)
         await refresh()
     }
+
+    /// Adds a task to the Nest's autobuild queue: "Add a task: … Done means: …".
+    func queueForNest(_ text: String) async {
+        guard let nest else { return }
+        messages.append(ChatMessage(id: UUID().uuidString, sender: .you, text: text))
+        let reply: String
+        do {
+            reply = try await SwiftAsk(project: nest, queue: queue(for: nest), planner: nil).answer(text)
+        } catch {
+            reply = "I couldn't queue that: \(error.localizedDescription)"
+        }
+        say(reply)
+        await refresh()
+    }
+
+    /// Sets the model the Nest's autobuild runs on.
+    func setAutobuildModel(_ model: ClaudeModel) { changeNest { $0.defaults.model = model } }
+    /// Sets how hard the Nest's autobuild thinks.
+    func setAutobuildEffort(_ effort: Effort) { changeNest { $0.defaults.effort = effort } }
 
     /// Adds the repository at `folder` as a project and talks about it.
     func addProject(at folder: URL) async {
@@ -232,6 +258,11 @@ final class SwiftPageModel {
     private func change(_ edit: (inout SwiftSettings) -> Void) {
         edit(&settings)
         try? store?.save(settings)
+    }
+
+    private func changeNest(_ edit: (inout SwiftProject) -> Void) {
+        guard let index = settings.projects.firstIndex(where: { $0.importsQueueFile }) else { return }
+        change { edit(&$0.projects[index]) }
     }
 
     private func changeProject(_ edit: (inout SwiftProject) -> Void) {

@@ -144,16 +144,28 @@ struct SwiftCockpitTests {
     }
 
     @Test func theCockpitLooksAsDesigned() async throws {
-        let (page, folder) = try await cockpit(nest: URL(fileURLWithPath: "/Users/someone/Developer/nest"))
+        let nest = URL(fileURLWithPath: "/Users/someone/Developer/nest")
+        let (page, folder) = try await cockpit(nest: nest)
         defer { try? FileManager.default.removeItem(at: folder) }
-        await page.send("Add a task: log the auton path. Done means: a test reads the log back")
-        await page.send("Add a task: show the queue count on Home on opus, max. Done means: a test sees 3 when 3 are queued")
-        page.setModel(.sonnet)
-        page.setEffort(.high)
+        await page.queueForNest("Add a task: log the auton path. Done means: a test reads the log back")
+        let home = folder.appending(path: "claude-home")
+        let history = home.appending(path: "projects/\(ClaudeHistory.folderName(for: nest))")
+        try FileManager.default.createDirectory(at: history, withIntermediateDirectories: true)
+        try [
+            #"{"type":"user","message":{"role":"user","content":"The tasks-left number is off by one at a 40% cap. Fix it and add a test."},"timestamp":"2026-11-14T12:31:00.000Z"}"#,
+            #"{"type":"assistant","message":{"id":"m1","content":[{"type":"text","text":"The room divides to 1.9999 instead of 2, so rounding down loses a task. I'll add a tolerance in `Budget.tasksLeft` and pin it with a test."}]}}"#,
+            #"{"type":"assistant","message":{"id":"m2","content":[{"type":"tool_use","id":"t1","name":"Read","input":{"file_path":"/Users/someone/Developer/nest/NestKit/Sources/NestKit/Budget/Budget.swift"}}]}}"#,
+            #"{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"142 lines"}]}}"#,
+            #"{"type":"assistant","message":{"id":"m3","content":[{"type":"tool_use","id":"t2","name":"Edit","input":{"file_path":"/Users/someone/Developer/nest/NestKit/Sources/NestKit/Budget/Budget.swift","old_string":"room / week.nextTask","new_string":"room / week.nextTask + 1e-9"}}]}}"#,
+            #"{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t2","content":"Updated"}]}}"#,
+            #"{"type":"assistant","message":{"id":"m4","content":[{"type":"text","text":"Fixed. **YourLimitsTests** passes 9/9."}]}}"#,
+        ].joined(separator: "\n").write(to: history.appending(path: "s1.jsonl"), atomically: true, encoding: .utf8)
+        let session = SwiftSessionModel(page: page, history: ClaudeHistory(home: home), command: ["/usr/bin/false"])
+        session.resume(PastSession(id: "s1", title: "Fix the budget rounding", lastActive: .now, messages: 1))
 
         let cockpit = HStack(alignment: .top, spacing: NestSpace.s6) {
-            SwiftCloseUp(page: page) {}
-                .frame(width: HomeLayout.column)
+            SwiftSessionPanel(session: session, compact: false, switchProject: {}, close: {})
+                .frame(width: HomeLayout.session, height: NestSpace.s10 * 6)
             SwiftInstruments(page: page)
                 .frame(width: HomeLayout.column)
         }

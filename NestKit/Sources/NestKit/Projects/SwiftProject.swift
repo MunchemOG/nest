@@ -47,7 +47,10 @@ public struct SwiftProject: Sendable, Equatable, Codable, Identifiable {
     }
 
     /// The letter on the project's tile.
-    public var initial: String { name.first(where: { $0.isLetter || $0.isNumber }).map { String($0).uppercased() } ?? "?" }
+    public var initial: String {
+        let words = name.lowercased().hasPrefix("the ") ? name.dropFirst(4) : Substring(name)
+        return words.first(where: { $0.isLetter || $0.isNumber }).map { String($0).uppercased() } ?? "?"
+    }
 
     /// The repository's folder as a URL.
     public var url: URL { URL(fileURLWithPath: folder) }

@@ -24,7 +24,7 @@ struct ClaudeHistoryTests {
         try [
             Self.line("user", "<command-name>/clear</command-name>", at: "2026-11-10T09:00:00.000Z"),
             Self.line("user", "Log the auton path\nso we can replay it", at: "2026-11-10T09:00:05.000Z"),
-            Self.line("assistant", "Sure.", at: "2026-11-10T09:00:09.000Z"),
+            #"{"type":"assistant","message":{"id":"m1","role":"assistant","content":[{"type":"text","text":"Sure."}]},"timestamp":"2026-11-10T09:00:09.000Z"}"#,
             Self.line("user", "now add a test", at: "2026-11-12T20:15:00.000Z"),
         ].joined(separator: "\n").write(to: swerve.appending(path: "aaa.jsonl"), atomically: true, encoding: .utf8)
         try [
@@ -100,5 +100,15 @@ struct ClaudeHistoryTests {
         project.tint = .lagoon
         #expect(project.tile == .lagoon)
         #expect(project.initial == "S")
+        #expect(SwiftProject.nest(at: URL(fileURLWithPath: "/n")).initial == "N")
+    }
+
+    @Test func aPastSessionReadsBackAsATranscript() throws {
+        let home = try home()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let transcript = ClaudeHistory(home: home).transcript(of: "aaa", in: URL(fileURLWithPath: "/Users/someone/Robotics/swerve_drive"))
+        #expect(transcript.items.map(\.kind) == [.you, .claude, .you])
+        #expect(transcript.items.map(\.text) == ["Log the auton path\nso we can replay it", "Sure.", "now add a test"])
+        #expect(!transcript.isWorking)
     }
 }

@@ -22,6 +22,10 @@ final class HomeModel {
     var closeUp: Bird?
     /// Swift's page, made the first time its close-up opens.
     private(set) var swiftPage: SwiftPageModel?
+    /// Swift's Claude Code session, shared by the close-up and the small Swift.
+    private(set) var swiftSession: SwiftSessionModel?
+    /// Whether Swift's project launcher is open.
+    var swiftLauncher = false
 
     private var clock: Date?
 
@@ -179,7 +183,13 @@ final class HomeModel {
 
     /// Opens `bird`'s close-up; Swift's page is made on first use.
     func open(_ bird: Bird) {
-        if bird == .swift, swiftPage == nil { swiftPage = try? SwiftPageModel.onThisMac() }
+        if bird == .swift { prepareSwift() }
         closeUp = bird
+    }
+
+    /// Makes Swift's page and session the first time either is needed.
+    func prepareSwift() {
+        if swiftPage == nil { swiftPage = try? SwiftPageModel.onThisMac() }
+        if swiftSession == nil, let swiftPage { swiftSession = SwiftSessionModel(page: swiftPage) }
     }
 }
