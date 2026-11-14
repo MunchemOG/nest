@@ -30,9 +30,16 @@ guard let task = queue.task(id) else {
 let permission = ProcessInfo.processInfo.environment["NEST_RUN_PERMISSION_MODE"] ?? "bypassPermissions"
 let runner = ManualRunner(
     repository: repository,
-    session: ["claude", "-p", "--permission-mode", permission],
+    session: ["claude", "-p", "--output-format", "stream-json", "--verbose", "--permission-mode", permission],
     tests: ["scripts/test.sh", suite],
-    watch: { print($0) }
+    watch: { line in
+        // The session speaks stream-json; show its final answer, not every event.
+        if line.hasPrefix("{") {
+            if let usage = SessionUsage(output: line) { print(usage.text) }
+        } else {
+            print(line)
+        }
+    }
 )
 
 do {

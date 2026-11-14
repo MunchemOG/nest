@@ -1,3 +1,5 @@
+import Foundation
+
 /// Runs Swift's queue back to back: claims the next ready task, builds it on a fresh branch, and marks it done or held.
 /// With a merger, each green task is merged and the whole suite runs on main; if main goes red, the merge is rolled back.
 public struct QueueRunner: Sendable {
@@ -11,6 +13,8 @@ public struct QueueRunner: Sendable {
     public let mainTests: [String]
     /// Where Swift's events go.
     public let publish: @Sendable (NestEvent) async -> Void
+    /// Where each session's cost is logged, or nil to log nothing.
+    public let usageLog: UsageLog?
 
     /// What a rollback tells you.
     public static let rollbackReason = "The whole suite failed on main after the merge."
@@ -21,20 +25,26 @@ public struct QueueRunner: Sendable {
         runner: ManualRunner,
         merger: AutoMerge? = nil,
         mainTests: [String] = [],
-        publish: @escaping @Sendable (NestEvent) async -> Void = { _ in }
+        publish: @escaping @Sendable (NestEvent) async -> Void = { _ in },
+        usageLog: UsageLog? = nil
     ) {
         self.queue = queue
         self.runner = runner
         self.merger = merger
         self.mainTests = mainTests
         self.publish = publish
+        self.usageLog = usageLog
     }
 
     /// Builds tasks one after another until none is ready, and returns how each ended, in order.
     public func runUntilEmpty() async throws -> [RunOutcome] {
         var outcomes: [RunOutcome] = []
         while let next = try await queue.claim() {
+            let started = Date.now
             let outcome = try await runner.run(QueueTask(next))
+            if let usageLog, let usage = outcome.usage {
+                try await usageLog.record(task: next.id, usage: usage, started: started, ended: .now)
+            }
             let kept = outcome.isDone ? try await mergeAndCheck(outcome) : false
             try await queue.finish(next.id, as: kept ? .done : .held)
             outcomes.append(outcome)
