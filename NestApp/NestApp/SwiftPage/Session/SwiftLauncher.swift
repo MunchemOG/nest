@@ -3,10 +3,13 @@ import NestKit
 import SwiftUI
 
 /// Choosing a project: every folder you've given Swift as a card, a card to add another (or drop a folder anywhere),
-/// and the current project's recent sessions to jump back into. Escape closes it; ⌘1 to ⌘9 open a project.
+/// and the current project's recent sessions to jump back into. Choosing a project opens a fresh session there.
+/// Escape closes it; ⌘1 to ⌘9 open a project.
 struct SwiftLauncher: View {
-    let session: SwiftSessionModel
+    let sessions: SwiftSessions
     let close: () -> Void
+
+    private var session: SwiftSessionModel { sessions.current }
 
     @State private var isDropping = false
     @Environment(\.pixelLength) private var hairline
@@ -29,7 +32,7 @@ struct SwiftLauncher: View {
                     LazyVGrid(columns: columns, spacing: NestSpace.s4) {
                         ForEach(Array(session.page.projects.enumerated()), id: \.element.id) { index, project in
                             SwiftProjectCard(project: project, history: session.history,
-                                             isCurrent: project.id == session.page.selected,
+                                             isCurrent: project.id == session.projectID,
                                              shortcut: index < 9 ? index + 1 : nil) { open(project.id) }
                         }
                         addCard
@@ -37,14 +40,14 @@ struct SwiftLauncher: View {
                 }
                 if !session.pastSessions.isEmpty {
                     VStack(alignment: .leading, spacing: NestSpace.s2) {
-                        Text("Recent sessions in \(session.page.project.name)")
+                        Text("Recent sessions in \(session.project.name)")
                             .nestFont(.caption)
                             .foregroundStyle(Color(NestColor.textMuted))
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: NestSpace.s2) {
                                 ForEach(session.pastSessions.prefix(8)) { past in
                                     Button("\(past.title) · \(past.lastActive.formatted(.relative(presentation: .named)))") {
-                                        session.resume(past)
+                                        sessions.resume(past)
                                         close()
                                     }
                                     .buttonStyle(NestButtonStyle(.secondary, size: .small))
@@ -85,7 +88,7 @@ struct SwiftLauncher: View {
     }
 
     private func open(_ id: String) {
-        Task { await session.open(id) }
+        sessions.open(id)
         close()
     }
 
@@ -102,9 +105,9 @@ struct SwiftLauncher: View {
 
     private func add(_ url: URL) {
         Task {
-            await session.page.addProject(at: url)
-            if session.page.project.url.standardizedFileURL == url.standardizedFileURL {
-                await session.open(session.page.selected)
+            await sessions.page.addProject(at: url)
+            if sessions.page.project.url.standardizedFileURL == url.standardizedFileURL {
+                sessions.open(sessions.page.selected)
                 close()
             }
         }

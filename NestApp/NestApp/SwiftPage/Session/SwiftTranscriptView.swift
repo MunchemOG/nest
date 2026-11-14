@@ -55,10 +55,10 @@ struct SwiftTranscriptView: View {
 
     private var empty: some View {
         VStack(alignment: .leading, spacing: NestSpace.s2) {
-            Text("Claude Code in \(session.page.project.name)")
+            Text("Claude Code in \(session.project.name)")
                 .nestFont(.title)
                 .foregroundStyle(Color(NestColor.textPrimary))
-            Text("Runs in \(session.page.project.folder.replacingOccurrences(of: NSHomeDirectory(), with: "~")) with its own CLAUDE.md and memory. Nothing from your other projects comes in.")
+            Text("Runs in \(session.project.folder.replacingOccurrences(of: NSHomeDirectory(), with: "~")) with its own CLAUDE.md and memory. Nothing from your other projects comes in.")
                 .nestFont(.bodyS)
                 .foregroundStyle(Color(NestColor.textSecondary))
                 .fixedSize(horizontal: false, vertical: true)

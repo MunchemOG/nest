@@ -4,10 +4,9 @@ import SwiftUI
 /// Where you talk to Claude Code: what you type, Claude Code's slash commands as you type a slash, and below it the model,
 /// effort, Ultracode, how it asks, what the session has cost, and send or stop.
 struct SwiftComposer: View {
-    let session: SwiftSessionModel
+    @Bindable var session: SwiftSessionModel
     let compact: Bool
 
-    @State private var text = ""
     @State private var scheduling: SwiftScheduleDraft?
     @FocusState private var focused: Bool
     @Environment(\.pixelLength) private var hairline
@@ -33,11 +32,11 @@ struct SwiftComposer: View {
 
     @ViewBuilder
     private var suggestionList: some View {
-        let suggestions = session.suggestions(for: text)
+        let suggestions = session.suggestions(for: session.draft)
         if !suggestions.isEmpty {
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(suggestions.prefix(6), id: \.name) { command in
-                    Button { text = "/\(command.name) " } label: {
+                    Button { session.draft = "/\(command.name) " } label: {
                         HStack(spacing: NestSpace.s2) {
                             Text("/\(command.name)").nestFont(.code).foregroundStyle(Color(NestColor.textPrimary))
                             Text(command.description).nestFont(.caption).foregroundStyle(Color(NestColor.textMuted)).lineLimit(1)
@@ -54,17 +53,22 @@ struct SwiftComposer: View {
 
     private var field: some View {
         TextField(session.isWorking ? "Claude is working… type to queue your next message" : "Reply to Claude, or type / for commands…",
-                  text: $text, axis: .vertical)
+                  text: $session.draft, axis: .vertical)
             .textFieldStyle(.plain)
             .nestFont(.body)
             .foregroundStyle(Color(NestColor.textPrimary))
             .lineLimit(1...(compact ? 4 : 8))
             .focused($focused)
             .onSubmit(send)
+            .onKeyPress(.escape) {
+                guard session.isWorking else { return .ignored }
+                stop()
+                return .handled
+            }
             .accessibilityIdentifier("swift.composer")
     }
 
-    private var stopping: Bool { session.isWorking && text.isEmpty }
+    private var stopping: Bool { session.isWorking && session.draft.isEmpty }
 
     private var controls: some View {
         HStack(spacing: NestSpace.s2) {
@@ -110,7 +114,7 @@ struct SwiftComposer: View {
                     .accessibilityLabel(stopping ? "Stop" : "Send")
             }
             .buttonStyle(SendButtonStyle())
-            .disabled(!session.isWorking && text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(!session.isWorking && session.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             .accessibilityIdentifier("swift.send")
         }
     }
@@ -176,14 +180,14 @@ struct SwiftComposer: View {
     }
 
     private var draft: SwiftScheduleDraft {
-        SwiftScheduleDraft(project: session.page.selected, prompt: text,
+        SwiftScheduleDraft(project: session.projectID, prompt: session.draft,
                            settings: RunSettings(model: session.model, effort: session.effort, subagents: false),
                            ultracode: session.ultracode, date: .now.addingTimeInterval(3600))
     }
 
     private func send() {
-        let message = text
-        text = ""
+        let message = session.draft
+        session.draft = ""
         Task { await session.send(message) }
     }
 
