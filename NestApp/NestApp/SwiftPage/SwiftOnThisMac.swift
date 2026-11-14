@@ -72,7 +72,8 @@ final class SwiftOnThisMac {
         let suite = ["scripts/test.sh", "all"]
         return QueueRunner(
             queue: queue,
-            runner: ManualRunner(repository: repository, session: session, tests: suite, watch: { log.info("\($0)") }),
+            runner: ManualRunner(repository: repository, session: session, tests: suite, defaults: .everyday,
+                                 watch: { log.info("\($0)") }),
             merger: AutoMerge(repository: repository),
             mainTests: suite,
             publish: publish,
@@ -82,10 +83,11 @@ final class SwiftOnThisMac {
         )
     }
 
-    /// The command that starts one Claude Code session; the prompt arrives as `$0`. Apps get a bare PATH,
-    /// so the places Claude Code installs to are added first.
+    /// The command that starts one Claude Code session; the run settings and the prompt that follow it all reach `claude`.
+    /// Apps get a bare PATH, so the places Claude Code installs to are added first.
     nonisolated static let session = [
         "/bin/sh", "-c",
-        #"PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH" exec claude -p --output-format stream-json --verbose --permission-mode bypassPermissions "$0""#,
+        #"PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH" exec claude -p --output-format stream-json --verbose --permission-mode bypassPermissions "$@""#,
+        "claude",
     ]
 }

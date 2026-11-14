@@ -4,6 +4,8 @@ public enum TaskQueueError: Error, Equatable {
     case duplicate(String)
     /// The task is not in the queue, or no run has claimed it.
     case notClaimed(String)
+    /// No task in the queue has this id.
+    case notFound(String)
     /// A task can only be finished as done or held.
     case notAnEnd(QueueState)
 }

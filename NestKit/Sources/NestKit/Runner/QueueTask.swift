@@ -8,13 +8,16 @@ public struct QueueTask: Sendable, Equatable {
     public let doneMeans: String
     /// What must be merged first, as written in the queue.
     public let needs: String
+    /// How its session runs, or nil to use the runner's default.
+    public var run: RunSettings?
 
     /// A task with the given id, goal, test and needs.
-    public init(id: String, goal: String, doneMeans: String, needs: String) {
+    public init(id: String, goal: String, doneMeans: String, needs: String, run: RunSettings? = nil) {
         self.id = id
         self.goal = goal
         self.doneMeans = doneMeans
         self.needs = needs
+        self.run = run
     }
 
     /// The git branch the task is built on.
@@ -24,6 +27,7 @@ public struct QueueTask: Sendable, Equatable {
 extension QueueTask {
     /// The task as the runner builds it, from its place in Swift's queue.
     public init(_ queued: QueuedTask) {
-        self.init(id: queued.id, goal: queued.goal, doneMeans: queued.doneMeans, needs: queued.needs.joined(separator: ", "))
+        self.init(id: queued.id, goal: queued.goal, doneMeans: queued.doneMeans, needs: queued.needs.joined(separator: ", "),
+                  run: queued.run)
     }
 }

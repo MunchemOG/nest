@@ -12,6 +12,8 @@ public struct ManualRunner: Sendable {
     public let base: String
     /// Called with each step and each line the session and the suite print, as they happen.
     public let watch: @Sendable (String) -> Void
+    /// How a task's session runs when the task has no override, or nil to leave Claude Code's own defaults.
+    public let defaults: RunSettings?
 
     private let shell = Shell()
 
@@ -21,6 +23,7 @@ public struct ManualRunner: Sendable {
         session: [String],
         tests: [String],
         base: String = "main",
+        defaults: RunSettings? = nil,
         watch: @escaping @Sendable (String) -> Void = { _ in }
     ) {
         self.repository = repository
@@ -28,6 +31,7 @@ public struct ManualRunner: Sendable {
         self.tests = tests
         self.base = base
         self.watch = watch
+        self.defaults = defaults
     }
 
     /// What the session is told: the repository's rules, then the task and to leave merging alone.
@@ -60,7 +64,9 @@ public struct ManualRunner: Sendable {
         try await switchToBranch(of: task)
 
         watch("\(task.id): session started")
-        let said = try await shell.run(session + [Self.prompt(for: task, rules: rules)], in: repository, watch: watch)
+        let settings = task.run ?? defaults
+        let prompt = Self.prompt(for: task, rules: rules) + (settings.map { "\n\n" + $0.promptLine } ?? "")
+        let said = try await shell.run(session + (settings?.arguments ?? []) + [prompt], in: repository, watch: watch)
         let usage = SessionUsage(output: said.text)
         let summary = SummaryBlock(in: usage?.text ?? said.text)
 
