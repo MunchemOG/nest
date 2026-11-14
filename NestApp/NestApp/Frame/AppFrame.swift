@@ -5,7 +5,7 @@ import SwiftUI
 /// The main window: the studio background, the rail on the left and the chosen screen on the grid.
 struct AppFrame: View {
     @State private var screen = NestScreen.home
-    @State private var home = HomeModel()
+    let home: HomeModel
 
     /// Each bird's newest action, for the studio's hop.
     private var latestActions: [Bird: NestEvent] {
@@ -71,5 +71,5 @@ struct AppFrame: View {
 }
 
 #Preview {
-    AppFrame()
+    AppFrame(home: HomeModel())
 }

@@ -8,11 +8,13 @@
 import SwiftUI
 
 struct ContentView: View {
+    let home: HomeModel
+
     var body: some View {
-        AppFrame()
+        AppFrame(home: home)
     }
 }
 
 #Preview {
-    ContentView()
+    ContentView(home: HomeModel())
 }

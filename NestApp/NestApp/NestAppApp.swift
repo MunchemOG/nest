@@ -11,7 +11,13 @@ import SwiftUI
 
 @main
 struct NestAppApp: App {
+    @State private var home: HomeModel
+    @State private var presence: PresenceSwitch
+
     init() {
+        let home = HomeModel()
+        _home = State(initialValue: home)
+        _presence = State(initialValue: PresenceSwitch(model: home))
         do {
             try NestFont.registerBundledFonts()
         } catch {
@@ -21,7 +27,7 @@ struct NestAppApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(home: home)
         }
         .defaultSize(width: NestSpace.s10 * 12, height: NestSpace.s10 * 7)
         .commands {
@@ -32,6 +38,10 @@ struct NestAppApp: App {
             CommandMenu("Debug") { GalleryMenuItem() }
         }
         #endif
+
+        MenuBarExtra("Nest", image: "mark-menubar") {
+            PresenceMenu(presence: presence)
+        }
 
         #if DEBUG
         Window("Component Gallery", id: ComponentGallery.windowID) {
