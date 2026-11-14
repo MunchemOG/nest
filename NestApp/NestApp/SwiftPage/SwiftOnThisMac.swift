@@ -48,12 +48,29 @@ final class SwiftOnThisMac {
                     for run in await night.tick() {
                         if let error = run.error { log.error("Swift's shift on \(run.project) stopped short: \(error)") }
                     }
+                    try await Self.jobs(settings: try store.load(), folder: folder, presence: presence, publish: publish).tick()
                 } catch {
                     log.error("Swift could not read its settings: \(error)")
                 }
                 try? await Task.sleep(for: Self.interval)
             }
         }
+    }
+
+    /// One look at your scheduled jobs: the first due one runs while you're away, in the hours you don't work, inside your limits.
+    nonisolated static func jobs(
+        settings: SwiftSettings,
+        folder: URL,
+        presence: PresenceWatch,
+        history: ClaudeHistory = ClaudeHistory(),
+        publish: @escaping @Sendable (NestEvent) async -> Void
+    ) async throws -> JobShift {
+        let usage = try UsageLog(at: folder.appending(path: "usage.sqlite"))
+        let budget = Budget(rules: settings.limits.rules(reserve: reserve), log: usage,
+                            forecast: UsageForecast(history: try await usage.yourUse()))
+        return JobShift(store: JobStore(at: folder.appending(path: "jobs.json")), projects: settings.projects,
+                        runner: JobRunner(folder: folder), presence: presence, pattern: WorkPattern(messages: history.yourMessages()),
+                        budget: budget, publish: publish)
     }
 
     /// The Nest's repository: the path in defaults, or `~/Developer/nest`.

@@ -8,6 +8,7 @@ struct SwiftComposer: View {
     let compact: Bool
 
     @State private var text = ""
+    @State private var scheduling: SwiftScheduleDraft?
     @FocusState private var focused: Bool
     @Environment(\.pixelLength) private var hairline
 
@@ -25,6 +26,9 @@ struct SwiftComposer: View {
         .overlay { shape.strokeBorder(Color(focused ? NestColor.lineStrong : NestColor.line), lineWidth: hairline) }
         .nestShadow(.bar, in: shape)
         .onAppear { focused = true }
+        .sheet(item: $scheduling) { draft in
+            SwiftScheduleSheet(page: session.page, draft: draft) { scheduling = nil }
+        }
     }
 
     @ViewBuilder
@@ -71,6 +75,14 @@ struct SwiftComposer: View {
                 modeMenu
             }
             Spacer(minLength: NestSpace.s2)
+            if !compact {
+                Button { scheduling = draft } label: {
+                    Image(systemName: "clock").font(.nest(.label)).foregroundStyle(Color(NestColor.textSecondary))
+                }
+                .buttonStyle(.plain)
+                .help("Schedule this for when you're away")
+                .accessibilityIdentifier("swift.schedule")
+            }
             if session.transcript.costUSD > 0 {
                 Text(String(format: "$%.2f", session.transcript.costUSD))
                     .nestFont(.caption)
@@ -122,8 +134,9 @@ struct SwiftComposer: View {
             HStack(spacing: NestSpace.s1) {
                 Image(systemName: session.ultracode ? "point.3.filled.connected.trianglepath.dotted" : "point.3.connected.trianglepath.dotted")
                     .font(.nest(.caption))
-                Text("Ultracode").nestFont(.label)
+                Text("Ultracode").nestFont(.label).lineLimit(1)
             }
+            .fixedSize()
             .foregroundStyle(Color(session.ultracode ? NestColor.onClay : NestColor.textSecondary))
             .padding(.horizontal, NestSpace.s3)
             .padding(.vertical, NestSpace.s1)
@@ -145,6 +158,12 @@ struct SwiftComposer: View {
         .padding(.horizontal, NestSpace.s3)
         .padding(.vertical, NestSpace.s1)
         .background { Capsule().fill(Color(NestColor.line)) }
+    }
+
+    private var draft: SwiftScheduleDraft {
+        SwiftScheduleDraft(project: session.page.selected, prompt: text,
+                           settings: RunSettings(model: session.model, effort: session.effort, subagents: false),
+                           ultracode: session.ultracode, date: .now.addingTimeInterval(3600))
     }
 
     private func send() {

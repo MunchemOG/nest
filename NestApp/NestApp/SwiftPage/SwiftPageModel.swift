@@ -14,6 +14,10 @@ final class SwiftPageModel {
     /// The rules Swift kept before you set limits: the fixed reserve and the blocked hours.
     let rules: BudgetRules
     let log: UsageLog?
+    /// Where your scheduled jobs are kept, or nil to keep them only for this page.
+    let jobStore: JobStore?
+    /// Claude Code's history, which your week is learned from, or nil to learn nothing.
+    let history: ClaudeHistory?
     /// What turns a plain request into tasks for a project, or nil to only take tasks written out.
     let planner: @Sendable (SwiftProject) -> PlanPass?
     private let now: @Sendable () -> Date
@@ -31,6 +35,10 @@ final class SwiftPageModel {
     private(set) var tonight: [QueuedTask] = []
     /// The Nest's autobuild queue: tasks waiting or being built, in order.
     private(set) var autobuild: [QueuedTask] = []
+    /// The work you scheduled, in the order you added it.
+    private(set) var jobs: [SwiftJob] = []
+    /// When you work, learned from Claude Code's history.
+    private(set) var pattern = WorkPattern(messages: [])
     /// The latest limits Claude reported, if any run was logged.
     private(set) var reported: LimitSnapshot?
     /// About how many more tasks fit this week under your cap, once a run is logged.
@@ -40,6 +48,8 @@ final class SwiftPageModel {
     init(queue: TaskQueue, rules: BudgetRules, log: UsageLog? = nil) {
         store = nil
         folder = nil
+        jobStore = nil
+        history = nil
         self.rules = rules
         self.log = log
         planner = { _ in nil }
@@ -57,10 +67,13 @@ final class SwiftPageModel {
         log: UsageLog?,
         rules: BudgetRules = SwiftOnThisMac.rules,
         planner: @escaping @Sendable (SwiftProject) -> PlanPass? = { _ in nil },
+        history: ClaudeHistory? = nil,
         now: @escaping @Sendable () -> Date = { .now }
     ) throws {
         self.store = store
         self.folder = folder
+        jobStore = JobStore(at: folder.appending(path: "jobs.json"))
+        self.history = history
         self.rules = rules
         self.log = log
         self.planner = planner
@@ -78,7 +91,7 @@ final class SwiftPageModel {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         return try SwiftPageModel(
             store: SwiftOnThisMac.settings(), folder: folder, log: try UsageLog(at: folder.appending(path: "usage.sqlite")),
-            planner: { PlanPass(repository: $0.url, session: SwiftOnThisMac.session + $0.defaults.arguments) }
+            history: ClaudeHistory()
         )
     }
 
@@ -136,6 +149,10 @@ final class SwiftPageModel {
         tonight = ((try? await queue(for: project).tasks()) ?? []).filter { $0.state == .queued || $0.state == .claimed }
         reported = (try? await log?.entries())?.last(where: { $0.limits != nil })?.limits
         tasksLeft = await tasksLeft(underCap: nil)
+        jobs = (try? jobStore?.load()) ?? jobs
+        if let history {
+            pattern = await Task.detached { WorkPattern(messages: history.yourMessages()) }.value
+        }
         if let nest {
             autobuild = ((try? await queue(for: nest).tasks()) ?? []).filter { $0.state == .queued || $0.state == .claimed }
         }
@@ -162,6 +179,28 @@ final class SwiftPageModel {
         isThinking = false
         say(reply)
         await refresh()
+    }
+
+    /// Schedules `job` and saves it.
+    func addJob(_ job: SwiftJob) {
+        jobs.append(job)
+        try? jobStore?.save(jobs)
+    }
+
+    /// Removes the job with id `id`; its branch, if it ran, stays.
+    func removeJob(_ id: String) {
+        jobs.removeAll { $0.id == id }
+        try? jobStore?.save(jobs)
+    }
+
+    /// When `job` runs next, as you'd say it, such as "Tonight 22:00" or "Wed 01:00".
+    func whenLine(_ job: SwiftJob, now: Date = .now) -> String {
+        guard let next = job.nextRun(after: now, pattern: pattern) else { return job.outcome ?? "Done" }
+        let calendar = Calendar.current
+        let time = next.formatted(date: .omitted, time: .shortened)
+        if calendar.isDateInToday(next) { return next.timeIntervalSince(now) < 60 ? "Now" : "Today \(time)" }
+        if calendar.isDateInTomorrow(next) { return "Tomorrow \(time)" }
+        return next.formatted(.dateTime.weekday(.abbreviated)) + " " + time
     }
 
     /// Adds a task to the Nest's autobuild queue: "Add a task: … Done means: …".
