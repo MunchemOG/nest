@@ -1,0 +1,48 @@
+# Swift is a visual Claude Code
+
+Approved in chat on 2026-11-14 from the mockup `swift-claude-code-v2`. This replaces the cockpit's chat, memory and per-project rules from `2026-11-14-swift-cockpit-design.md`. The limits, the Nest's autobuild and the learned forecast stay.
+
+## What Swift is
+
+Swift is a visual wrapper around Claude Code that does nothing Claude Code doesn't. You choose a project, a model and an effort, then work with Claude Code in a real interface instead of a terminal. On top of that, Swift runs the Nest's autobuild and any other work you schedule, in the hours it has learned you don't work, inside the limits you set.
+
+## Decisions
+
+| Question | Answer |
+| --- | --- |
+| Where it lives | Swift's close-up on Home: the session on the left, Swift's tile in the middle, the schedule and limits on the right. A small floating Swift shows the same live session; the menu bar opens it until the desktop birds exist. |
+| What a session is | The real `claude` in the project's folder, driven over its stream-json protocol (`--input-format stream-json --output-format stream-json --permission-prompt-tool stdio`). It brings your login, your settings, the folder's `CLAUDE.md` and Claude Code's own per-project memory. Nothing crosses between projects unless you add another folder as a reference. |
+| Permissions | Exactly Claude Code's: Allow, Always allow (Claude Code's own suggestion) or Deny on each request, and its modes: Ask, Accept edits, Plan, Auto. |
+| Model and effort | Pills in the composer. Model changes live (`set_model`). Effort changes resume the same session with the new `--effort`. |
+| Multi-agent work | Claude Code's own Ultracode: a switch in the composer that adds the keyword. Custom subagents are archived (see Later). |
+| Memory | Claude Code's per-folder memory only. The `.nest/memory` brief is removed. |
+| Projects | A launcher: one tile per folder (an initial on one of the Nest's accent colours), branch and changed files, last sessions, and a 14-day activity strip read from Claude Code's own session history. |
+| Scheduled work | Any prompt can become a job: project, prompt, model, effort, Ultracode and mode, run at the next gap, tonight, at a time, or on repeat. Jobs run only while you're away, inside your limits, in a git worktree on their own branch (`swift/<job>`), so your working copy is never touched. Deleting the branch undoes the job. |
+| When you work | Learned from the timestamps of your messages in Claude Code's session history, by weekday and hour, over the last four weeks. An hour you've worked in at least twice is yours, and Swift doesn't run in it. |
+
+## Parts
+
+- **NestKit `ClaudeCode/`**
+  - `ClaudeEvent`: one line of the stream, parsed.
+  - `ClaudeSession`: the process. It handles start, send, answers, interrupt, model, mode and stop.
+  - `SessionTranscript`: the events folded into what you see.
+  - `PermissionAnswer`.
+  - `ClaudeHistory`: past sessions and activity per folder, read from Claude Code's projects folder.
+- **NestKit `Schedule/`**
+  - `SwiftJob`.
+  - `JobTiming`.
+  - `WorkPattern`: your learned week.
+  - `JobRunner`: runs a job in a worktree, headless.
+- **App**
+  - `SwiftSessionModel`: shared by the close-up and the small Swift.
+  - `SwiftSessionPanel` and its item views.
+  - `SwiftLauncher`.
+  - `SwiftWeekPanel`.
+  - `SwiftScheduleSheet`.
+  - The small Swift window.
+
+## Later (archived)
+
+- Custom subagents with visual prompts and capabilities.
+- Ultracode's workflow-size setting. It has no command-line flag yet.
+- Swift's own memory brief.
