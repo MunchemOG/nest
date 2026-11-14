@@ -50,6 +50,14 @@ struct NestAppApp: App {
             PresenceMenu(presence: presence)
         }
 
+        Window("Swift", id: SwiftMiniWindow.id) {
+            SwiftMiniWindow(home: home)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .windowLevel(.floating)
+        .defaultSize(width: NestSpace.s10 * 3 + NestSpace.s8, height: NestSpace.s10 * 4)
+        .defaultPosition(.topTrailing)
+
         #if DEBUG
         Window("Component Gallery", id: ComponentGallery.windowID) {
             ComponentGallery()
