@@ -30,6 +30,13 @@ struct HomeScreen: View {
                 ActivityPanel(model: model)
                     .frame(width: HomeLayout.column)
             }
+            .overlay(alignment: .leading) {
+                if model.closeUp == .swift, let page = model.swiftPage {
+                    SwiftCloseUp(page: page) { model.closeUp = nil }
+                        .frame(width: HomeLayout.column)
+                        .transition(.opacity)
+                }
+            }
             .overlay {
                 GeometryReader { space in
                     let dock = HomeLayout.dock(inContentWidth: space.size.width)

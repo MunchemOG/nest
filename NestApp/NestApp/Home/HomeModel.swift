@@ -16,6 +16,10 @@ final class HomeModel {
     private(set) var facts = HeadlineFacts()
     private var ledger = UndoLedger(events: [])
     private var dismissed: Set<String> = []
+    /// The bird whose close-up is open, if any. Only Swift has one so far.
+    var closeUp: Bird?
+    /// Swift's page, made the first time its close-up opens.
+    private(set) var swiftPage: SwiftPageModel?
 
     private var clock: Date?
 
@@ -131,6 +135,10 @@ final class HomeModel {
 
     /// Answers a card in the needs-you stack: tells its bird, if the answer is for a bird, and puts the card away.
     func answer(_ event: NestEvent, with action: NeedsYouAction) {
+        if action.opensTheBird, let bird = event.sender.bird {
+            open(bird)
+            return
+        }
         if action.tellsTheBird, let bird = event.sender.bird {
             publish(.appAsk(to: bird.rawValue, text: action.title))
         }
@@ -154,5 +162,11 @@ final class HomeModel {
         for await event in source.events() {
             receive(event)
         }
+    }
+
+    /// Opens `bird`'s close-up; Swift's page is made on first use.
+    func open(_ bird: Bird) {
+        if bird == .swift, swiftPage == nil { swiftPage = try? SwiftPageModel.onThisMac() }
+        closeUp = bird
     }
 }
