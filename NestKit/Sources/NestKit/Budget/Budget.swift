@@ -39,11 +39,18 @@ public struct Budget: Sendable {
         let shares = report.tasks.map(\.weekly).filter { $0 > 0 }
         let nextTask = shares.isEmpty ? Self.firstGuess : shares.reduce(0, +) / Double(shares.count)
         let limits = entries.last(where: { $0.limits != nil })?.limits
-        var rules = self.rules
-        if let forecast, let limits {
-            let reserve = forecast.reserve(from: time, until: limits.weeklyResets, orElse: rules.reserve)
-            rules = BudgetRules(blocked: rules.blocked, reserve: reserve, fiveHourCeiling: rules.fiveHourCeiling)
-        }
+        let rules = BudgetRules(blocked: rules.blocked, reserve: reserve(at: time, limits: limits),
+                                fiveHourCeiling: rules.fiveHourCeiling)
         return rules.decide(at: time, limits: limits, nextTask: nextTask, calendar: calendar)
+    }
+
+    /// The share of the weekly limit kept back for you now: the learned forecast once it has history, else the fixed reserve.
+    public func reserve() async throws -> Double {
+        reserve(at: now(), limits: try await log.entries().last(where: { $0.limits != nil })?.limits)
+    }
+
+    private func reserve(at time: Date, limits: LimitSnapshot?) -> Double {
+        guard let forecast, let limits else { return rules.reserve }
+        return forecast.reserve(from: time, until: limits.weeklyResets, orElse: rules.reserve)
     }
 }
