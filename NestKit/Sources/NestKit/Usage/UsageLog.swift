@@ -54,6 +54,12 @@ public actor UsageLog {
         UsageReport(entries: try entries().filter { $0.started >= start && $0.started <= end })
     }
 
+    /// Your own share of the weekly limit on each logged day, oldest first: what the day's sessions don't explain.
+    public func yourUse(byDayIn calendar: Calendar = .current) throws -> [DayUse] {
+        let days = Dictionary(grouping: try entries()) { calendar.startOfDay(for: $0.started) }
+        return days.keys.sorted().map { DayUse(day: $0, used: UsageReport(entries: days[$0] ?? []).chatsWeekly) }
+    }
+
     private static func millis(_ date: Date) -> Int { Int((date.timeIntervalSince1970 * 1000).rounded()) }
     private static func date(_ millis: Int) -> Date { Date(timeIntervalSince1970: Double(millis) / 1000) }
 }
