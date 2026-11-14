@@ -23,12 +23,14 @@ final class SwiftPageModel {
         self.log = log
     }
 
+    /// Where Swift keeps its queue and usage log on this Mac.
+    nonisolated static var folder: URL { URL.applicationSupportDirectory.appending(path: "Nest/Swift") }
+
     /// Swift's page on this Mac, with its queue and usage log in the app's own support folder.
     static func onThisMac() throws -> SwiftPageModel {
-        let folder = URL.applicationSupportDirectory.appending(path: "Nest/Swift")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         return SwiftPageModel(queue: try TaskQueue(at: folder.appending(path: "queue.sqlite")),
-                              rules: BudgetRules(reserve: 0.25),
+                              rules: SwiftOnThisMac.rules,
                               log: try UsageLog(at: folder.appending(path: "usage.sqlite")))
     }
 

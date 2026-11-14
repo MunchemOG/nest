@@ -7,6 +7,9 @@ import Observation
 final class PresenceSwitch {
     let model: HomeModel
 
+    /// Tells Swift each flip, even one the timeline already shows; the timeline may be a replay, the switch is you.
+    var tellSwift: ((String) -> Void)?
+
     init(model: HomeModel) {
         self.model = model
     }
@@ -17,6 +20,7 @@ final class PresenceSwitch {
         set {
             let was = model.facts.presence ?? (newValue ? "away" : "here")
             let to = newValue ? "here" : "away"
+            tellSwift?(to)
             guard to != was else { return }
             model.publish(.presenceChanged(to: to, was: was))
         }

@@ -37,18 +37,6 @@ public struct SwiftShift: Sendable {
         return run
     }
 
-    /// Looks at the queue every `interval` until the task is cancelled, handing any failure to `failed`.
-    public func keepGoing(every interval: Duration, failed: @escaping @Sendable (Error) -> Void = { _ in }) async {
-        while !Task.isCancelled {
-            do {
-                _ = try await tick()
-            } catch {
-                failed(error)
-            }
-            try? await Task.sleep(for: interval)
-        }
-    }
-
     private func usage(of run: QueueRun) async throws -> ReportedUsage {
         let limits = try await runner.usageLog?.entries().last(where: { $0.limits != nil })?.limits
         let reserve = try await runner.budget?.reserve() ?? 0
