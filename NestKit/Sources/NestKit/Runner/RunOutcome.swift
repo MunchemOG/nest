@@ -10,6 +10,8 @@ public struct RunOutcome: Sendable, Equatable {
     public let testsPassed: Bool
     /// Why the task is held, or nil when it is done.
     public let held: String?
+    /// What the session cost, when it ran with stream-json output.
+    public var usage: SessionUsage? = nil
 
     /// Whether the task is done: on its branch, summary block read, suite green.
     public var isDone: Bool { held == nil }

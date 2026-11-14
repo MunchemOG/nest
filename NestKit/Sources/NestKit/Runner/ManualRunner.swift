@@ -61,22 +61,23 @@ public struct ManualRunner: Sendable {
 
         watch("\(task.id): session started")
         let said = try await shell.run(session + [Self.prompt(for: task, rules: rules)], in: repository, watch: watch)
-        let summary = SummaryBlock(in: said.text)
+        let usage = SessionUsage(output: said.text)
+        let summary = SummaryBlock(in: usage?.text ?? said.text)
 
         if let held = try await reasonToHold(task, summary: summary, status: said.status) {
-            return finish(task, summary: summary, testsPassed: false, held: held)
+            return finish(task, summary: summary, usage: usage, testsPassed: false, held: held)
         }
 
         watch("\(task.id): running the suite")
         let suite = try await shell.run(tests, in: repository, watch: watch)
         guard suite.succeeded else {
-            return finish(task, summary: summary, testsPassed: false, held: "the suite failed when the runner ran it")
+            return finish(task, summary: summary, usage: usage, testsPassed: false, held: "the suite failed when the runner ran it")
         }
 
         watch("\(task.id): checking the branch")
         let problems = DoneChecks.problems(in: try await BranchDiff(base: base, branch: task.branch, in: repository))
         let held = problems.isEmpty ? nil : "the branch failed its checks: " + problems.joined(separator: " | ")
-        return finish(task, summary: summary, testsPassed: true, held: held)
+        return finish(task, summary: summary, usage: usage, testsPassed: true, held: held)
     }
 
     private func switchToBranch(of task: QueueTask) async throws {
@@ -107,13 +108,13 @@ public struct ManualRunner: Sendable {
         return nil
     }
 
-    private func finish(_ task: QueueTask, summary: SummaryBlock?, testsPassed: Bool, held: String?) -> RunOutcome {
+    private func finish(_ task: QueueTask, summary: SummaryBlock?, usage: SessionUsage?, testsPassed: Bool, held: String?) -> RunOutcome {
         if let held {
             watch("\(task.id): held on \(task.branch): \(held)")
         } else {
             watch("\(task.id): done on \(task.branch), suite green")
         }
-        return RunOutcome(task: task, branch: task.branch, summary: summary, testsPassed: testsPassed, held: held)
+        return RunOutcome(task: task, branch: task.branch, summary: summary, testsPassed: testsPassed, held: held, usage: usage)
     }
 
     @discardableResult
