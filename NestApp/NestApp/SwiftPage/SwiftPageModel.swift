@@ -18,6 +18,8 @@ final class SwiftPageModel {
     let jobStore: JobStore?
     /// Claude Code's history, which your week is learned from, or nil to learn nothing.
     let history: ClaudeHistory?
+    /// The Mac's active minutes, which your week is also learned from.
+    let activityLog: ActivityLog?
     /// What turns a plain request into tasks for a project, or nil to only take tasks written out.
     let planner: @Sendable (SwiftProject) -> PlanPass?
     private let now: @Sendable () -> Date
@@ -50,6 +52,7 @@ final class SwiftPageModel {
         folder = nil
         jobStore = nil
         history = nil
+        activityLog = nil
         self.rules = rules
         self.log = log
         planner = { _ in nil }
@@ -74,6 +77,7 @@ final class SwiftPageModel {
         self.folder = folder
         jobStore = JobStore(at: folder.appending(path: "jobs.json"))
         self.history = history
+        activityLog = ActivityLog(at: folder.appending(path: "activity.json"))
         self.rules = rules
         self.log = log
         self.planner = planner
@@ -151,7 +155,8 @@ final class SwiftPageModel {
         tasksLeft = await tasksLeft(underCap: nil)
         jobs = (try? jobStore?.load()) ?? jobs
         if let history {
-            pattern = await Task.detached { WorkPattern(messages: history.yourMessages()) }.value
+            let activity = (try? activityLog?.hours()) ?? [:]
+            pattern = await Task.detached { WorkPattern(messages: history.yourMessages(), activity: activity) }.value
         }
         if let nest {
             autobuild = ((try? await queue(for: nest).tasks()) ?? []).filter { $0.state == .queued || $0.state == .claimed }

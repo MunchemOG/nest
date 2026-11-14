@@ -17,7 +17,7 @@ struct SwiftWeekPanel: View {
                     Text("Swift's week")
                         .nestFont(.title)
                         .foregroundStyle(Color(NestColor.textPrimary))
-                    Text("Your hours, learned from your Claude Code sessions. Swift works only outside them, while you're away.")
+                    Text("Your hours, learned from everything you do on this Mac and in Claude Code. Swift works outside them once you've been idle a while.")
                         .nestFont(.caption)
                         .foregroundStyle(Color(NestColor.textMuted))
                         .fixedSize(horizontal: false, vertical: true)
@@ -81,7 +81,7 @@ struct SwiftWeekPanel: View {
 
     private func color(weekday: Int, hour: Int, planned: Set<[Int]>) -> NestColor {
         if planned.contains([weekday, hour]) { return Bird.swift.color }
-        return page.pattern.counts[weekday][hour] >= WorkPattern.threshold ? .textMuted : .line
+        return page.pattern.isYours(weekday: weekday, hour: hour) ? .textMuted : .line
     }
 
     private var legend: some View {

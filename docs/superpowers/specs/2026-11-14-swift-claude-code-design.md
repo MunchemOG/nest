@@ -23,7 +23,7 @@ Swift is a visual wrapper around Claude Code that does nothing Claude Code doesn
 ## Self-driving presence (S2-30)
 
 - **What Swift learns from:** all your work. That's the Mac's active minutes (keyboard or mouse use in a minute, counted per hour, kept only on this Mac in Swift's folder) and the timestamps of your Claude Code messages. Swift's own headless runs are not you and leave no activity.
-- **How it learns:** an hour of a day counts as worked if you messaged Claude in it or were active for at least 10 minutes. Each worked hour adds to its weekday-and-hour slot, weighted by how recent it is: 1 for the last week, 0.75, 0.5 and 0.25 for the three before. A slot scoring 1 or more is yours.
+- **How it learns:** an hour of a day counts as worked if you messaged Claude in it or were active for at least 10 minutes. Each worked hour adds to its weekday-and-hour slot, weighted by how recent it is: 1 for the last week, 0.75, 0.5 and 0.25 for the three before. A slot scoring 1.25 or more is yours: more than any one week, so a single late night doesn't take an hour away from Swift.
 - **When you count as away:** after 15 idle minutes in a gap, or after 60 idle minutes at any time. Touching the Mac makes you here again at once. "Hold Swift" in the menu bar keeps you here until you turn it off.
 - **Who follows it:** the autobuild and scheduled jobs. Swift decides only *when* to build. *What* to build comes from `docs/queue.md` and, later, Crow.
 

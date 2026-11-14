@@ -69,9 +69,12 @@ final class SwiftOnThisMac {
         let budget = Budget(rules: settings.limits.rules(reserve: reserve), log: usage,
                             forecast: UsageForecast(history: try await usage.yourUse()))
         return JobShift(store: JobStore(at: folder.appending(path: "jobs.json")), projects: settings.projects,
-                        runner: JobRunner(folder: folder), presence: presence, pattern: WorkPattern(messages: history.yourMessages()),
+                        runner: JobRunner(folder: folder), presence: presence, pattern: WorkPattern(messages: history.yourMessages(), activity: (try? activity.hours()) ?? [:]),
                         budget: budget, publish: publish)
     }
+
+    /// The Mac's active minutes, kept in Swift's folder for learning your week.
+    nonisolated static var activity: ActivityLog { ActivityLog(at: SwiftPageModel.folder.appending(path: "activity.json")) }
 
     /// The Nest's repository: the path in defaults, or `~/Developer/nest`.
     nonisolated static func repository(defaults: UserDefaults = .standard,

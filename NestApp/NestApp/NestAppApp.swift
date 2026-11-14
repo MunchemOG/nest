@@ -13,6 +13,7 @@ import SwiftUI
 struct NestAppApp: App {
     @State private var home: HomeModel
     @State private var presence: PresenceSwitch
+    @State private var auto: AutoPresence?
 
     init() {
         let home = HomeModel()
@@ -24,6 +25,9 @@ struct NestAppApp: App {
             let swift = SwiftOnThisMac()
             presence.tellSwift = swift.hear
             swift.start { event in await home.receive(event) }
+            let auto = AutoPresence(presence: presence, log: SwiftOnThisMac.activity, messages: { ClaudeHistory().yourMessages() })
+            auto.start()
+            _auto = State(initialValue: auto)
         }
         do {
             try NestFont.registerBundledFonts()
@@ -47,7 +51,7 @@ struct NestAppApp: App {
         #endif
 
         MenuBarExtra("Nest", image: "mark-menubar") {
-            PresenceMenu(presence: presence)
+            PresenceMenu(presence: presence, auto: auto)
         }
 
         Window("Swift", id: SwiftMiniWindow.id) {
