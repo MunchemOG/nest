@@ -10,9 +10,18 @@ public struct ClaudeHistory: Sendable {
         self.home = home
     }
 
-    /// The name Claude Code gives a folder's history: its path with everything but letters and digits made a dash.
+    /// The name Claude Code gives a folder's history: its real path (links followed, so `/tmp` is `/private/tmp`)
+    /// with everything but letters and digits made a dash.
     public static func folderName(for folder: URL) -> String {
-        String(folder.standardizedFileURL.path.map { $0.isLetter || $0.isNumber ? $0 : "-" })
+        String(realPath(folder).map { $0.isLetter || $0.isNumber ? $0 : "-" })
+    }
+
+    /// The folder's path with every link followed, as the system resolves it; the path as given if it doesn't exist.
+    static func realPath(_ folder: URL) -> String {
+        let path = folder.standardizedFileURL.path
+        guard let resolved = realpath(path, nil) else { return path }
+        defer { free(resolved) }
+        return String(cString: resolved)
     }
 
     /// The sessions run in `folder`, the most recent first.

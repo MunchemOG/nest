@@ -43,6 +43,16 @@ struct ClaudeHistoryTests {
         #expect(ClaudeHistory.folderName(for: URL(fileURLWithPath: "/Users/someone/Developer/nest")) == "-Users-someone-Developer-nest")
     }
 
+    @Test func aFolderReachedThroughALinkIsNamedByItsRealPath() throws {
+        let real = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().appending(path: "real-\(UUID().uuidString)")
+        let link = FileManager.default.temporaryDirectory.appending(path: "link-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: real, withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: real)
+        defer { try? FileManager.default.removeItem(at: link); try? FileManager.default.removeItem(at: real) }
+        #expect(ClaudeHistory.folderName(for: link) == ClaudeHistory.folderName(for: real))
+        #expect(ClaudeHistory.folderName(for: URL(fileURLWithPath: "/tmp")) == "-private-tmp")
+    }
+
     @Test func aProjectListsItsSessionsNewestFirstWithTitles() throws {
         let home = try home()
         defer { try? FileManager.default.removeItem(at: home) }
