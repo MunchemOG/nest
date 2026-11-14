@@ -21,6 +21,9 @@ enum HomeLayout {
         return (centre, max(0, min(dockWidth, room, width)))
     }
 
+    /// The width of Swift's Claude Code panel.
+    static let session = NestSpace.s10 * 5
+
     /// The headline's widest line.
     static let headline = NestSpace.s10 * 6
 }

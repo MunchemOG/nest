@@ -52,6 +52,21 @@ public struct ClaudeHistory: Sendable {
         return folders.flatMap { files(in: $0) }.flatMap { Self.lines(of: $0).compactMap(Self.yours).map(\.time) }
     }
 
+    /// A past session in `folder` as a transcript: what you said, Claude's replies, and the tools it used.
+    public func transcript(of session: String, in folder: URL) -> SessionTranscript {
+        var transcript = SessionTranscript(folder: folder.path)
+        for line in Self.lines(of: historyFolder(for: folder).appending(path: "\(session).jsonl")) {
+            if let yours = Self.yours(line) {
+                transcript.add(you: yours.text)
+            } else if let data = try? JSONEncoder().encode(line), let event = ClaudeEvent(line: String(decoding: data, as: UTF8.self)) {
+                if case .finished = event { continue }
+                transcript.apply(event)
+            }
+        }
+        transcript.settle()
+        return transcript
+    }
+
     private func historyFolder(for folder: URL) -> URL {
         home.appending(path: "projects").appending(path: Self.folderName(for: folder))
     }
