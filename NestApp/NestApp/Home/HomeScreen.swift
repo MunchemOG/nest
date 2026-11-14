@@ -18,11 +18,17 @@ struct HomeScreen: View {
             }
             .overlay(alignment: .topTrailing) {
                 VStack(alignment: .trailing, spacing: NestSpace.s3) {
-                    if let focus {
-                        focus.frame(width: HomeLayout.column)
+                    if model.closeUp == .swift, let page = model.swiftPage {
+                        SwiftInstruments(page: page)
+                            .frame(width: HomeLayout.column)
+                            .transition(.opacity)
+                    } else {
+                        if let focus {
+                            focus.frame(width: HomeLayout.column)
+                        }
+                        NeedsYouPanel(events: model.needsYou, answer: model.answer)
+                            .frame(width: HomeLayout.column)
                     }
-                    NeedsYouPanel(events: model.needsYou, answer: model.answer)
-                        .frame(width: HomeLayout.column)
                 }
                 .padding(.top, NestSpace.s9 - NestSpace.s4)
             }
