@@ -19,6 +19,8 @@ public struct QueueRunner: Sendable {
     public let budget: Budget?
     /// Whether you are at the Mac; Swift finishes its step and stands down when you arrive.
     public let presence: PresenceWatch?
+    /// The project the queue belongs to, as the usage log records it; nil for none.
+    public let project: String?
 
     /// What a rollback tells you.
     public static let rollbackReason = "The whole suite failed on main after the merge."
@@ -32,7 +34,8 @@ public struct QueueRunner: Sendable {
         publish: @escaping @Sendable (NestEvent) async -> Void = { _ in },
         usageLog: UsageLog? = nil,
         budget: Budget? = nil,
-        presence: PresenceWatch? = nil
+        presence: PresenceWatch? = nil,
+        project: String? = nil
     ) {
         self.queue = queue
         self.runner = runner
@@ -42,6 +45,7 @@ public struct QueueRunner: Sendable {
         self.usageLog = usageLog
         self.budget = budget
         self.presence = presence
+        self.project = project
     }
 
     /// Builds tasks one after another until none is ready, and returns how each ended, in order.
@@ -63,7 +67,7 @@ public struct QueueRunner: Sendable {
             let started = Date.now
             let outcome = try await runner.run(QueueTask(next))
             if let usageLog, let usage = outcome.usage {
-                try await usageLog.record(task: next.id, usage: usage, started: started, ended: .now)
+                try await usageLog.record(task: next.id, project: project, usage: usage, started: started, ended: .now)
             }
             let kept = outcome.isDone ? try await mergeAndCheck(outcome) : false
             try await queue.finish(next.id, as: kept ? .done : .held)

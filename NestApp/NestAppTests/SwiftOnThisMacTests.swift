@@ -78,6 +78,15 @@ struct SwiftOnThisMacTests {
         #expect(await swift.presence.current == "here")
     }
 
+    @Test func yourSettingsLiveInSwiftsFolderAndStartWithTheNest() {
+        let defaults = UserDefaults(suiteName: "SwiftOnThisMacTests-\(UUID().uuidString)")!
+        defaults.set("/Volumes/Work/nest", forKey: SwiftOnThisMac.repositoryKey)
+        let store = SwiftOnThisMac.settings(defaults: defaults)
+        #expect(store.file == SwiftPageModel.folder.appending(path: "settings.json"))
+        #expect(store.nest.path == "/Volumes/Work/nest")
+        #expect(SwiftOnThisMac.rules == SwiftLimits.standard.rules(reserve: 0.25))
+    }
+
     @Test func theRepositoryIsTheOneYouSetOrTheNestInDeveloper() {
         let defaults = UserDefaults(suiteName: "SwiftOnThisMacTests-\(UUID().uuidString)")!
         let home = URL(fileURLWithPath: "/Users/someone")
