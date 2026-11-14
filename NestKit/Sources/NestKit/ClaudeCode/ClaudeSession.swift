@@ -82,9 +82,10 @@ public actor ClaudeSession {
         Task { [weak self] in
             do {
                 for try await line in stdout.fileHandleForReading.bytes.lines {
-                    guard let event = ClaudeEvent(line: line) else { continue }
-                    await self?.heard(event)
-                    continuation.yield(event)
+                    for event in ClaudeEvent.all(in: line) {
+                        await self?.heard(event)
+                        continuation.yield(event)
+                    }
                 }
             } catch {}
         }
@@ -113,6 +114,42 @@ public actor ClaudeSession {
     /// Stops the turn Claude is working on, as Escape does in the terminal.
     public func interrupt() throws {
         try control(["subtype": .string("interrupt")])
+    }
+
+    /// Asks Claude Code for your usage and the context; it answers with `.usage` and `.context`. Neither costs usage.
+    public func checkUsage() throws {
+        try control(["subtype": .string("get_usage")])
+        try control(["subtype": .string("get_context_usage")])
+    }
+
+    /// Your usage and account, read by starting Claude Code with `options` just to ask, without a message.
+    /// Either is nil if Claude Code doesn't answer within `timeout`.
+    public static func readUsage(_ options: Options, timeout: Duration = .seconds(20)) async
+        -> (usage: ClaudeUsage?, account: ClaudeAccount?) {
+        let session = ClaudeSession(options)
+        do {
+            try await session.start()
+            try await session.checkUsage()
+        } catch {
+            await session.stop()
+            return (nil, nil)
+        }
+        let deadline = Task {
+            try? await Task.sleep(for: timeout)
+            await session.stop()
+        }
+        defer { deadline.cancel() }
+        var usage: ClaudeUsage?, account: ClaudeAccount?
+        for await event in session.events {
+            switch event {
+            case .usage(let read): usage = read
+            case .account(let read): account = read
+            default: break
+            }
+            if usage != nil { break }
+        }
+        await session.stop()
+        return (usage, account)
     }
 
     /// Switches the model for the rest of the session.

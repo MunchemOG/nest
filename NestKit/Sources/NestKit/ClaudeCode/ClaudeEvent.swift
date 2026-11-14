@@ -16,14 +16,28 @@ public enum ClaudeEvent: Sendable, Equatable {
     case toolResult(id: String, text: String, isError: Bool)
     /// Claude asking to use a tool.
     case permission(PermissionRequest)
-    /// How full your plan's limits are.
+    /// How full your plan's limits are, from the stream after a request.
     case limits(LimitSnapshot)
+    /// Claude Code's own report of your plan, each limit with its reset, and the session's totals.
+    case usage(ClaudeUsage)
+    /// How full the session's context is.
+    case context(ContextUsage)
+    /// Who is signed in.
+    case account(ClaudeAccount)
     /// A turn ended.
     case finished(SessionFinish)
     /// The process ended, with its exit status.
     case ended(Int32)
 
-    /// The event in `line`, or nil if the line is not one Swift shows.
+    /// Every event in `line`, in order: Claude Code's answer to `initialize` holds both its commands and the account.
+    public static func all(in line: String) -> [ClaudeEvent] {
+        guard let first = ClaudeEvent(line: line) else { return [] }
+        guard case .commands = first, let account = JSONValue(line: line)?["response"]?["response"]?["account"],
+              account["email"] != nil || account["subscriptionType"] != nil else { return [first] }
+        return [first, .account(ClaudeAccount(email: account["email"]?.string, plan: account["subscriptionType"]?.string))]
+    }
+
+    /// The first event in `line`, or nil if the line is not one Swift shows.
     public init?(line: String) {
         guard let json = JSONValue(line: line), let type = json["type"]?.string else { return nil }
         switch type {
@@ -31,7 +45,10 @@ public enum ClaudeEvent: Sendable, Equatable {
             guard json["subtype"]?.string == "init", let id = json["session_id"]?.string else { return nil }
             self = .started(sessionID: id, model: json["model"]?.string ?? "")
         case "control_response":
-            guard let list = json["response"]?["response"]?["commands"]?.array else { return nil }
+            guard let response = json["response"]?["response"] else { return nil }
+            if let usage = ClaudeUsage(response) { self = .usage(usage); return }
+            if let context = ContextUsage(response) { self = .context(context); return }
+            guard let list = response["commands"]?.array else { return nil }
             self = .commands(list.compactMap { command in
                 command["name"]?.string.map { SlashCommand(name: $0, description: command["description"]?.string ?? "") }
             })

@@ -41,8 +41,13 @@ final class SwiftPageModel {
     private(set) var jobs: [SwiftJob] = []
     /// When you work, learned from Claude Code's history.
     private(set) var pattern = WorkPattern(messages: [])
-    /// The latest limits Claude reported, if any run was logged.
+    /// The latest limits Claude reported: what Claude Code said last, or else the last logged run's.
     private(set) var reported: LimitSnapshot?
+    /// What Claude Code last said about your plan: each limit with its reset, and the session's totals.
+    private(set) var claude: ClaudeUsage?
+    /// Who is signed in to Claude Code, once it has said.
+    private(set) var account: ClaudeAccount?
+    private var live: LimitSnapshot?
     /// About how many more tasks fit this week under your cap, once a run is logged.
     private(set) var tasksLeft: Int?
 
@@ -151,7 +156,8 @@ final class SwiftPageModel {
     /// Reads the chosen project's queue and the latest limits again.
     func refresh() async {
         tonight = ((try? await queue(for: project).tasks()) ?? []).filter { $0.state == .queued || $0.state == .claimed }
-        reported = (try? await log?.entries())?.last(where: { $0.limits != nil })?.limits
+        let logged = (try? await log?.entries())?.last(where: { $0.limits != nil })?.limits
+        reported = live ?? logged
         tasksLeft = await tasksLeft(underCap: nil)
         jobs = (try? jobStore?.load()) ?? jobs
         if let history {
@@ -161,6 +167,23 @@ final class SwiftPageModel {
         if let nest {
             autobuild = ((try? await queue(for: nest).tasks()) ?? []).filter { $0.state == .queued || $0.state == .claimed }
         }
+    }
+
+    /// Keeps what Claude Code just said about your usage; your limits show it at once.
+    func heard(_ usage: ClaudeUsage) {
+        claude = usage
+        if let snapshot = usage.snapshot { heard(snapshot) }
+    }
+
+    /// Keeps the limits Claude just reported in a session's stream.
+    func heard(_ snapshot: LimitSnapshot) {
+        live = snapshot
+        reported = snapshot
+    }
+
+    /// Keeps who is signed in to Claude Code.
+    func heard(_ account: ClaudeAccount) {
+        self.account = account
     }
 
     /// Talks about the project with id `id` from now on.
@@ -314,6 +337,14 @@ final class SwiftPageModel {
         change { edit(&$0.projects[index]) }
     }
 
-    private static func percent(_ share: Double) -> String { "\(Int((share * 100).rounded()))%" }
+    /// When a limit resets, as you read it: the time today, or the day and time later.
+    static func resets(_ date: Date, now: Date = .now, calendar: Calendar = .current) -> String {
+        let parts = calendar.dateComponents([.hour, .minute, .weekday], from: date)
+        let time = clock((parts.hour ?? 0) * 60 + (parts.minute ?? 0))
+        guard !calendar.isDate(date, inSameDayAs: now) else { return "resets \(time)" }
+        return "resets \(calendar.shortWeekdaySymbols[(parts.weekday ?? 1) - 1]) \(time)"
+    }
+
+    static func percent(_ share: Double) -> String { "\(Int((share * 100).rounded()))%" }
     private static func clock(_ minutes: Int) -> String { String(format: "%02d:%02d", minutes / 60, minutes % 60) }
 }

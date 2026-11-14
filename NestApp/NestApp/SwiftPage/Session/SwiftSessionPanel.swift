@@ -19,6 +19,10 @@ struct SwiftSessionPanel: View {
             }
         }
         .task { await session.refresh() }
+        .task {
+            guard !compact else { return }
+            await session.watchUsage()
+        }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier(compact ? "swift.mini" : "swift.closeup")
     }

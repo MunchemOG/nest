@@ -25,6 +25,8 @@ final class SwiftSessionModel {
     private(set) var pastSessions: [PastSession] = []
     /// Where the chosen project's repository stands.
     private(set) var status = ProjectStatus(branch: nil, changed: 0)
+    /// How full the live session's context is, once Claude Code has said.
+    private(set) var context: ContextUsage?
 
     /// The model the next message runs on.
     var model: ClaudeModel
@@ -57,6 +59,32 @@ final class SwiftSessionModel {
         guard text.hasPrefix("/"), !text.contains(" ") else { return [] }
         let typed = text.dropFirst().lowercased()
         return commands.filter { $0.name.lowercased().hasPrefix(typed) }
+    }
+
+    /// How full the context is, in a few words, or nil before Claude Code has said.
+    var contextLine: String? {
+        context.map { "Context \(SwiftPageModel.percent($0.used)) full" }
+    }
+
+    /// Asks Claude Code for your usage: the live session if there is one, or else Claude Code started just to ask.
+    /// Reading it costs no usage.
+    func checkUsage() async {
+        if let session {
+            try? await session.checkUsage()
+            return
+        }
+        let options = ClaudeSession.Options(folder: page.project.url, model: model, effort: effort, command: command)
+        let read = await ClaudeSession.readUsage(options)
+        if let usage = read.usage { page.heard(usage) }
+        if let account = read.account { page.heard(account) }
+    }
+
+    /// Asks Claude Code for your usage now and every five minutes until the task is cancelled.
+    func watchUsage() async {
+        while !Task.isCancelled {
+            await checkUsage()
+            try? await Task.sleep(for: .seconds(300))
+        }
     }
 
     /// Reads the chosen project's past sessions and repository status again.
@@ -109,6 +137,7 @@ final class SwiftSessionModel {
         sessionID = nil
         title = nil
         transcript = SessionTranscript(folder: page.project.folder)
+        context = nil
         model = page.project.defaults.model
         effort = page.project.defaults.effort
         ultracode = false
@@ -119,6 +148,7 @@ final class SwiftSessionModel {
         end()
         sessionID = past.id
         title = past.title
+        context = nil
         transcript = history.transcript(of: past.id, in: page.project.url)
     }
 
@@ -156,8 +186,14 @@ final class SwiftSessionModel {
                 self.transcript.apply(event)
                 switch event {
                 case .started(let id, _): self.sessionID = id
-                case .finished(let finish): self.sessionID = finish.sessionID ?? self.sessionID
+                case .finished(let finish):
+                    self.sessionID = finish.sessionID ?? self.sessionID
+                    try? await session.checkUsage()
                 case .commands(let list): self.commands = list
+                case .usage(let usage): self.page.heard(usage)
+                case .limits(let snapshot): self.page.heard(snapshot)
+                case .context(let context): self.context = context
+                case .account(let account): self.page.heard(account)
                 default: break
                 }
             }
@@ -165,6 +201,7 @@ final class SwiftSessionModel {
         try await session.start()
         self.session = session
         started = (model, effort, mode)
+        try await session.checkUsage()
         return session
     }
 }
