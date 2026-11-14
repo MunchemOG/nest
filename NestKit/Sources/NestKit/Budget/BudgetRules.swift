@@ -1,6 +1,6 @@
 import Foundation
 
-/// Swift's simple budget: blocked hours, a share of the weekly limit kept back for you, and a full five-hour window.
+/// Swift's simple budget: blocked hours, a share of the weekly limit kept back for you, your own cap on the week, and a full five-hour window.
 public struct BudgetRules: Sendable, Equatable {
     /// Hours Swift never runs in.
     public let blocked: [BlockedHours]
@@ -8,13 +8,20 @@ public struct BudgetRules: Sendable, Equatable {
     public let reserve: Double
     /// How full the five-hour window may be before Swift waits for it to reset (0 to 1).
     public let fiveHourCeiling: Double
+    /// The most of the weekly limit you let Swift reach (0 to 1); the reserve can only make it stricter.
+    public let weeklyCap: Double
 
-    /// Rules that keep `reserve` of the week back, block `blocked`, and wait once the five-hour window reaches `fiveHourCeiling`.
-    public init(blocked: [BlockedHours] = [], reserve: Double, fiveHourCeiling: Double = 0.95) {
+    /// Rules that keep `reserve` of the week back, never pass `weeklyCap`, block `blocked`,
+    /// and wait once the five-hour window reaches `fiveHourCeiling`.
+    public init(blocked: [BlockedHours] = [], reserve: Double, fiveHourCeiling: Double = 0.95, weeklyCap: Double = 1) {
         self.blocked = blocked
         self.reserve = reserve
         self.fiveHourCeiling = fiveHourCeiling
+        self.weeklyCap = weeklyCap
     }
+
+    /// How far the week may fill: your cap, or less when the reserve asks for more room.
+    public var ceiling: Double { min(weeklyCap, 1 - reserve) }
 
     /// Whether a task expected to use `nextTask` of the weekly limit may start at `time`, with the limits at `limits`.
     public func decide(at time: Date, limits: LimitSnapshot?, nextTask: Double, calendar: Calendar) -> BudgetDecision {
@@ -27,7 +34,11 @@ public struct BudgetRules: Sendable, Equatable {
         if limits.fiveHour >= fiveHourCeiling {
             return .pause("The five-hour limit is nearly full; it resets at \(Self.clock(limits.fiveHourResets, calendar)).")
         }
-        if limits.weekly + nextTask > 1 - reserve + 1e-9 {
+        if limits.weekly + nextTask > ceiling + 1e-9 {
+            if weeklyCap < 1 - reserve {
+                return .pause("Keeping to your cap: \(Self.percent(limits.weekly)) of the week is used, the next task needs about "
+                              + "\(Self.percent(nextTask)), and your cap is \(Self.percent(weeklyCap)).")
+            }
             return .pause("Keeping the reserve: \(Self.percent(limits.weekly)) of the week is used, the next task needs about "
                           + "\(Self.percent(nextTask)), and \(Self.percent(reserve)) is kept back.")
         }

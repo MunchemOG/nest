@@ -19,24 +19,29 @@ public actor UsageLog {
                 weekly_resets INTEGER
             )
             """)
+        let columns = try database.rows("PRAGMA table_info(sessions)").compactMap { $0.count > 1 ? $0[1].text : nil }
+        if !columns.contains("project") {
+            try database.execute("ALTER TABLE sessions ADD COLUMN project TEXT")
+        }
     }
 
-    /// Logs one session of `task`.
-    public func record(task: String, usage: SessionUsage, started: Date, ended: Date) throws {
+    /// Logs one session of `task`, which belongs to `project` when given.
+    public func record(task: String, project: String? = nil, usage: SessionUsage, started: Date, ended: Date) throws {
         let limits = usage.limits
         try database.execute(
-            "INSERT INTO sessions VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO sessions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [.text(task), .integer(Self.millis(started)), .integer(Self.millis(ended)),
              .integer(Int((usage.costUSD * 1_000_000).rounded())),
              limits.map { .text(String($0.fiveHour)) } ?? .null, limits.map { .integer(Self.millis($0.fiveHourResets)) } ?? .null,
-             limits.map { .text(String($0.weekly)) } ?? .null, limits.map { .integer(Self.millis($0.weeklyResets)) } ?? .null]
+             limits.map { .text(String($0.weekly)) } ?? .null, limits.map { .integer(Self.millis($0.weeklyResets)) } ?? .null,
+             project.map { .text($0) } ?? .null]
         )
     }
 
     /// Every logged session, oldest first.
     public func entries() throws -> [UsageEntry] {
         try database.rows("SELECT * FROM sessions ORDER BY started, rowid").compactMap { row in
-            guard row.count == 8, let task = row[0].text, let started = row[1].integer, let ended = row[2].integer,
+            guard row.count == 9, let task = row[0].text, let started = row[1].integer, let ended = row[2].integer,
                   let cost = row[3].integer else { return nil }
             var limits: LimitSnapshot?
             if let five = row[4].text.flatMap(Double.init), let fiveResets = row[5].integer,
@@ -45,7 +50,7 @@ public actor UsageLog {
                                        weekly: week, weeklyResets: Self.date(weekResets))
             }
             return UsageEntry(task: task, started: Self.date(started), ended: Self.date(ended),
-                              costUSD: Double(cost) / 1_000_000, limits: limits)
+                              costUSD: Double(cost) / 1_000_000, limits: limits, project: row[8].text)
         }
     }
 
