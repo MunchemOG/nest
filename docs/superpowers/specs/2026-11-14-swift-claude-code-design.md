@@ -27,6 +27,17 @@ Swift is a visual wrapper around Claude Code that does nothing Claude Code doesn
 - **When you count as away:** after 15 idle minutes in a gap, or after 60 idle minutes at any time. Touching the Mac makes you here again at once. "Hold Swift" in the menu bar keeps you here until you turn it off.
 - **Who follows it:** the autobuild and scheduled jobs. Swift decides only *when* to build. *What* to build comes from `docs/queue.md` and, later, Crow.
 
+## Everything Claude Code has (added 2026-11-14)
+
+Swift shows and does everything the terminal does, asking Claude Code itself over the same stream. Nothing is estimated and nothing costs usage to read.
+
+- **Claude's own numbers** (`get_usage`, `get_context_usage`, `initialize`, `rate_limit_event`): your session (five-hour) limit, the week, and each model's own week, each with its reset time; your plan and account; how full the context is and when it compacts; what the session has cost and the lines it changed. Read when a session starts, after every turn, and every five minutes while Swift's close-up is open. The limits panel uses the latest reading, so it no longer waits for a night's run.
+- **Questions and plans:** when Claude asks a question, Swift shows its options (one or several, plus your own words) and sends your answers back as Claude Code expects. When Claude shows a plan, Swift shows the plan with Approve and Keep planning.
+- **What Claude is doing:** its thinking, its to-do list as a live checklist, each subagent's work under its card, compaction, and API retries.
+- **Attachments:** paste or drop images and they go with your message; drop a file or type `@` to mention a file in the project.
+- **Models:** the picker lists every model your account has, with only the effort levels each one supports, and fast mode when Claude Code offers it.
+- **Setup:** your skills, plugins, agents, MCP servers (with their status), output style and effective settings, as Claude Code reports them. You can turn an MCP server on or off, reconnect it, reload plugins and choose the output style. Each change is an undoable event. Permission rules are shown but not changed.
+
 ## Parts
 
 - **NestKit `ClaudeCode/`**
