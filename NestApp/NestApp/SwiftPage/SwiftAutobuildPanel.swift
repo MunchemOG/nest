@@ -18,7 +18,7 @@ struct SwiftAutobuildPanel: View {
                     StatusPill(.bird(.swift, page.autobuild.contains { $0.state == .claimed } ? .active : .resting))
                 }
                 Text(page.autobuild.isEmpty ? "Nothing waiting in docs/queue.md." :
-                        "Builds docs/queue.md once you're away. Next: \(page.autobuild[0].id)"
+                        "Builds docs/queue.md when Swift decides you're away. Next: \(page.autobuild[0].id)"
                         + (page.autobuild.count > 1 ? " and \(page.autobuild.count - 1) more." : "."))
                     .nestFont(.bodyS)
                     .foregroundStyle(Color(NestColor.textSecondary))
