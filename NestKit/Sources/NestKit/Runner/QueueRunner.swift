@@ -15,6 +15,8 @@ public struct QueueRunner: Sendable {
     public let publish: @Sendable (NestEvent) async -> Void
     /// Where each session's cost is logged, or nil to log nothing.
     public let usageLog: UsageLog?
+    /// The budget checked before each task, or nil to run without one.
+    public let budget: Budget?
 
     /// What a rollback tells you.
     public static let rollbackReason = "The whole suite failed on main after the merge."
@@ -26,7 +28,8 @@ public struct QueueRunner: Sendable {
         merger: AutoMerge? = nil,
         mainTests: [String] = [],
         publish: @escaping @Sendable (NestEvent) async -> Void = { _ in },
-        usageLog: UsageLog? = nil
+        usageLog: UsageLog? = nil,
+        budget: Budget? = nil
     ) {
         self.queue = queue
         self.runner = runner
@@ -34,12 +37,22 @@ public struct QueueRunner: Sendable {
         self.mainTests = mainTests
         self.publish = publish
         self.usageLog = usageLog
+        self.budget = budget
     }
 
     /// Builds tasks one after another until none is ready, and returns how each ended, in order.
     public func runUntilEmpty() async throws -> [RunOutcome] {
+        try await run().outcomes
+    }
+
+    /// Builds tasks one after another until none is ready or the budget says to pause.
+    public func run() async throws -> QueueRun {
         var outcomes: [RunOutcome] = []
-        while let next = try await queue.claim() {
+        while true {
+            if let budget, case .pause(let why) = try await budget.decide() {
+                return QueueRun(outcomes: outcomes, paused: why)
+            }
+            guard let next = try await queue.claim() else { break }
             let started = Date.now
             let outcome = try await runner.run(QueueTask(next))
             if let usageLog, let usage = outcome.usage {
@@ -49,7 +62,7 @@ public struct QueueRunner: Sendable {
             try await queue.finish(next.id, as: kept ? .done : .held)
             outcomes.append(outcome)
         }
-        return outcomes
+        return QueueRun(outcomes: outcomes, paused: nil)
     }
 
     /// Merges a green task and runs the whole suite on main, rolling the merge back if it fails. Returns whether it stayed.
