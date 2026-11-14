@@ -16,11 +16,11 @@ public struct PlanPass: Sendable {
     }
 
     /// What plan mode is asked for (see `docs/house-rules.md`).
-    public static func prompt(for idea: String) -> String {
+    public static func prompt(for idea: String, project: String = "the Nest") -> String {
         """
-        Plan this rough idea for the Nest; do not build anything: \(idea)
+        Plan this rough idea for \(project); do not build anything: \(idea)
 
-        Work out the smallest version that would satisfy it, what it would touch, and anything it needs that the Nest \
+        Work out the smallest version that would satisfy it, what it would touch, and anything it needs that \(project) \
         does not have yet. Then reply with its tasks as table rows, in build order, each small enough for one session \
         and each with its own "done means" test:
 
@@ -28,13 +28,14 @@ public struct PlanPass: Sendable {
         | --- | --- | --- | --- |
         | P-01 | <what it builds> | <the test that proves it> | - |
 
-        If it needs anything outside the Nest's own code, reply with one line instead: Dropped: <why>.
+        If it needs anything outside \(project)'s own code, reply with one line instead: Dropped: <why>.
         """
     }
 
     /// Asks plan mode about `idea` and reads its answer into tasks with ids `<prefix>-01`, `<prefix>-02`, ….
-    public func plan(_ idea: String, as prefix: String) async throws -> Plan {
-        let said = try await shell.run(session + ["--permission-mode", "plan", Self.prompt(for: idea)], in: repository)
+    public func plan(_ idea: String, as prefix: String, for project: String = "the Nest") async throws -> Plan {
+        let said = try await shell.run(session + ["--permission-mode", "plan", Self.prompt(for: idea, project: project)],
+                                       in: repository)
         guard said.succeeded else { throw PlanPassError.sessionFailed(said.text) }
         return try Self.plan(from: said.text, as: prefix)
     }
