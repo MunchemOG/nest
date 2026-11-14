@@ -73,7 +73,9 @@ public struct ManualRunner: Sendable {
 
         watch("\(task.id): session started")
         let settings = task.run ?? defaults
+        let memory = try await ProjectMemory.read(in: repository, at: "HEAD")
         let prompt = Self.prompt(for: task, rules: rules) + (settings.map { "\n\n" + $0.promptLine } ?? "")
+            + (memory.map { "\n\n" + $0.prompt } ?? "")
         let said = try await shell.run(session + (settings?.arguments ?? []) + [prompt], in: repository, watch: watch)
         let usage = SessionUsage(output: said.text)
         let summary = SummaryBlock(in: usage?.text ?? said.text)

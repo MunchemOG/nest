@@ -42,7 +42,10 @@ public struct SwiftNight: Sendable {
         var runs: [ProjectRun] = []
         for project in settings.projects {
             do {
-                let shift = SwiftShift(runner: try await runner(for: project), base: project.base,
+                let runner = try await runner(for: project)
+                guard await presence.current == "away" else { return runs }
+                try await ProjectMemory.keep(project, queue: runner.queue)
+                let shift = SwiftShift(runner: runner, base: project.base,
                                        queuePath: project.importsQueueFile ? "docs/queue.md" : nil)
                 guard let run = try await shift.tick() else { return runs }
                 runs.append(ProjectRun(project: project.id, run: run, error: nil))
