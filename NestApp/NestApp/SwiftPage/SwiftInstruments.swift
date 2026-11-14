@@ -1,14 +1,17 @@
 import NestKit
 import SwiftUI
 
-/// The right of Swift's close-up: your limits above, the Nest's autobuild below.
+/// The right of Swift's close-up: Swift's week and your scheduled work, your limits, and the Nest's autobuild.
 struct SwiftInstruments: View {
     let page: SwiftPageModel
 
     var body: some View {
-        VStack(spacing: NestSpace.s3) {
-            SwiftLimitsPanel(page: page)
-            SwiftAutobuildPanel(page: page)
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: NestSpace.s3) {
+                SwiftWeekPanel(page: page)
+                SwiftLimitsPanel(page: page)
+                SwiftAutobuildPanel(page: page)
+            }
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("swift.instruments")
