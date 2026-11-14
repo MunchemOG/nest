@@ -8,6 +8,9 @@ struct NeedsYouPanel: View {
 
     @Environment(\.timeZone) private var timeZone
     @Environment(\.nestAccent) private var accent
+    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
+    @Environment(\.reduceMotionOverride) private var reduceMotionOverride
+    @State private var opened: Set<String> = []
 
     var body: some View {
         NestPanel(.solid, padding: NestSpace.s2) {
@@ -57,10 +60,19 @@ struct NeedsYouPanel: View {
                     .nestFont(.caption)
                     .monospacedDigit()
                     .foregroundStyle(Color(NestColor.textMuted))
+                if let details = ReportDetails(event), opened.contains(event.id) {
+                    ReportDetailsView(details: details)
+                        .transition(.opacity)
+                }
                 HStack(spacing: NestSpace.s2) {
                     ForEach(Array(NeedsYouAction.actions(for: event).enumerated()), id: \.offset) { index, action in
                         Button(action.title) { answer(event, action) }
                             .buttonStyle(NestButtonStyle(index == 0 ? .solid : .secondary, size: .small))
+                    }
+                    if ReportDetails(event) != nil {
+                        Button(opened.contains(event.id) ? "Hide details" : "Details") { toggleDetails(of: event) }
+                            .buttonStyle(NestButtonStyle(.quiet, size: .small))
+                            .accessibilityIdentifier("report.details")
                     }
                 }
                 .padding(.top, NestSpace.s2)
@@ -69,5 +81,13 @@ struct NeedsYouPanel: View {
         }
         .padding(NestSpace.s3)
         .transition(.opacity)
+    }
+
+    /// Opens or closes a report's details in place, without movement under reduced motion.
+    private func toggleDetails(of event: NestEvent) {
+        let reduceMotion = reduceMotionOverride ?? systemReduceMotion
+        withAnimation(reduceMotion ? nil : .nest(NestMotion.base)) {
+            if opened.contains(event.id) { opened.remove(event.id) } else { opened.insert(event.id) }
+        }
     }
 }
