@@ -26,6 +26,8 @@ final class HomeModel {
     private(set) var swiftSession: SwiftSessionModel?
     /// Whether Swift's project launcher is open.
     var swiftLauncher = false
+    /// How Swift's page is made; on this Mac it reads Swift's own folder.
+    var makeSwiftPage: () -> SwiftPageModel? = { try? SwiftPageModel.onThisMac() }
 
     private var clock: Date?
 
@@ -189,7 +191,7 @@ final class HomeModel {
 
     /// Makes Swift's page and session the first time either is needed.
     func prepareSwift() {
-        if swiftPage == nil { swiftPage = try? SwiftPageModel.onThisMac() }
+        if swiftPage == nil { swiftPage = makeSwiftPage() }
         if swiftSession == nil, let swiftPage { swiftSession = SwiftSessionModel(page: swiftPage) }
     }
 }
