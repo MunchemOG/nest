@@ -1,7 +1,7 @@
 import Foundation
 
 /// Runs Swift's queue back to back: claims the next ready task, builds it on a fresh branch, and marks it done or held.
-/// With a merger, each green task is merged and the whole suite runs on main; if main goes red, the merge is rolled back.
+/// It stands down between tasks when you arrive. With a merger, each green task is merged and the whole suite runs on main; if main goes red, the merge is rolled back.
 public struct QueueRunner: Sendable {
     /// Where the tasks come from and where their ends are written.
     public let queue: TaskQueue
@@ -17,6 +17,8 @@ public struct QueueRunner: Sendable {
     public let usageLog: UsageLog?
     /// The budget checked before each task, or nil to run without one.
     public let budget: Budget?
+    /// Whether you are at the Mac; Swift finishes its step and stands down when you arrive.
+    public let presence: PresenceWatch?
 
     /// What a rollback tells you.
     public static let rollbackReason = "The whole suite failed on main after the merge."
@@ -29,7 +31,8 @@ public struct QueueRunner: Sendable {
         mainTests: [String] = [],
         publish: @escaping @Sendable (NestEvent) async -> Void = { _ in },
         usageLog: UsageLog? = nil,
-        budget: Budget? = nil
+        budget: Budget? = nil,
+        presence: PresenceWatch? = nil
     ) {
         self.queue = queue
         self.runner = runner
@@ -38,6 +41,7 @@ public struct QueueRunner: Sendable {
         self.publish = publish
         self.usageLog = usageLog
         self.budget = budget
+        self.presence = presence
     }
 
     /// Builds tasks one after another until none is ready, and returns how each ended, in order.
@@ -49,6 +53,9 @@ public struct QueueRunner: Sendable {
     public func run() async throws -> QueueRun {
         var outcomes: [RunOutcome] = []
         while true {
+            if let presence, await presence.standsSwiftDown {
+                return QueueRun(outcomes: outcomes, paused: await presence.reason)
+            }
             if let budget, case .pause(let why) = try await budget.decide() {
                 return QueueRun(outcomes: outcomes, paused: why)
             }
