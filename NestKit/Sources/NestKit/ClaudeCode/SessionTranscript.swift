@@ -77,7 +77,7 @@ public struct SessionTranscript: Sendable, Equatable {
         case .ended:
             settleStreaming()
             isWorking = false
-        case .started, .commands, .limits:
+        case .started, .commands, .limits, .usage, .context, .account:
             break
         }
     }

@@ -1,7 +1,8 @@
 import NestKit
 import SwiftUI
 
-/// Your limits for Swift: the week as a ring with your cap on it, the caps you drag, what they buy, and this project's share.
+/// Your limits for Swift: the week as a ring with your cap on it, each of your plan's limits with its reset as Claude Code
+/// reports it, the caps you drag, what they buy, and this project's share.
 struct SwiftLimitsPanel: View {
     let page: SwiftPageModel
 
@@ -11,18 +12,37 @@ struct SwiftLimitsPanel: View {
                 HStack(spacing: NestSpace.s4) {
                     SwiftUsageRing(used: page.reported?.weekly ?? 0, cap: page.limits.weeklyCap)
                     VStack(alignment: .leading, spacing: NestSpace.s1) {
-                        Text("Your limits")
-                            .nestFont(.title)
-                            .foregroundStyle(Color(NestColor.textPrimary))
+                        HStack(spacing: NestSpace.s2) {
+                            Text("Your limits")
+                                .nestFont(.title)
+                                .foregroundStyle(Color(NestColor.textPrimary))
+                            if let plan = page.account?.plan ?? page.claude?.plan {
+                                Text(plan)
+                                    .nestFont(.caption)
+                                    .foregroundStyle(Color(NestColor.textMuted))
+                                    .accessibilityIdentifier("swift.limits.plan")
+                            }
+                        }
                         Text(page.tasksLeftLine)
                             .nestFont(.bodyS)
                             .foregroundStyle(Color(Bird.swift.color))
                             .accessibilityIdentifier("swift.limits.left")
-                        Text(page.fiveHourLine)
-                            .nestFont(.caption)
-                            .foregroundStyle(Color(NestColor.textSecondary))
-                            .fixedSize(horizontal: false, vertical: true)
+                        if page.claude == nil {
+                            Text(page.fiveHourLine)
+                                .nestFont(.caption)
+                                .foregroundStyle(Color(NestColor.textSecondary))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
+                }
+                if let claude = page.claude {
+                    VStack(alignment: .leading, spacing: NestSpace.s2) {
+                        ForEach(claude.limits, id: \.title) { limit in
+                            SwiftLimitRow(limit: limit)
+                        }
+                    }
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("swift.limits.claude")
                 }
                 cap("Week", value: page.limits.weeklyCap, id: "swift.limits.week") { cap in
                     Task { await page.setWeeklyCap(cap) }

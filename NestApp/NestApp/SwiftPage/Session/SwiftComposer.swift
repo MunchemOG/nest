@@ -83,6 +83,21 @@ struct SwiftComposer: View {
                 .help("Schedule this for when you're away")
                 .accessibilityIdentifier("swift.schedule")
             }
+            if !compact, let lines = session.page.claude, lines.linesAdded + lines.linesRemoved > 0 {
+                Text("+\(lines.linesAdded) −\(lines.linesRemoved)")
+                    .nestFont(.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(Color(NestColor.textMuted))
+                    .help("Lines this session changed")
+            }
+            if let context = session.contextLine {
+                Text(context)
+                    .nestFont(.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(Color(NestColor.textMuted))
+                    .help("How full Claude's context is; Claude Code compacts it when it fills")
+                    .accessibilityIdentifier("swift.context")
+            }
             if session.transcript.costUSD > 0 {
                 Text(String(format: "$%.2f", session.transcript.costUSD))
                     .nestFont(.caption)
