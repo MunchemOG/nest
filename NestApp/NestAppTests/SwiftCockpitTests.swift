@@ -1,5 +1,6 @@
 import Foundation
 import NestKit
+import SwiftUI
 import Testing
 @testable import NestApp
 
@@ -156,5 +157,22 @@ struct SwiftCockpitTests {
         #expect(page.tonight.first?.run == .deepest)
         page.setMemoryModel(.fable)
         #expect(page.project.memory.model == .fable)
+    }
+
+    @Test func theCockpitLooksAsDesigned() async throws {
+        let (page, folder) = try await cockpit(nest: URL(fileURLWithPath: "/Users/someone/Developer/nest"))
+        defer { try? FileManager.default.removeItem(at: folder) }
+        await page.send("Add a task: log the auton path. Done means: a test reads the log back")
+        await page.send("Add a task: show the queue count on Home on opus, max. Done means: a test sees 3 when 3 are queued")
+        page.setModel(.sonnet)
+        page.setEffort(.high)
+
+        let cockpit = HStack(alignment: .top, spacing: NestSpace.s6) {
+            SwiftCloseUp(page: page) {}
+                .frame(width: HomeLayout.column)
+            SwiftInstruments(page: page)
+                .frame(width: HomeLayout.column)
+        }
+        try Snapshot.expect(cockpit.environment(\.reduceMotionOverride, true), named: "swift-cockpit", rendering: .window)
     }
 }

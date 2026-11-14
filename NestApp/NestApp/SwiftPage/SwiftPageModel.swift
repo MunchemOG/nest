@@ -103,6 +103,16 @@ final class SwiftPageModel {
         return tasksLeft == 1 ? "About 1 task left this week" : "About \(tasksLeft) tasks left this week"
     }
 
+    /// How full the five-hour window is and when it resets, in one line.
+    var fiveHourLine: String {
+        guard let reported else { return "Limits show after Swift's first logged run." }
+        let parts = Calendar.current.dateComponents([.hour, .minute], from: reported.fiveHourResets)
+        return "Five hours: \(Self.percent(reported.fiveHour)) used, resets \(Self.clock((parts.hour ?? 0) * 60 + (parts.minute ?? 0)))"
+    }
+
+    /// `value` rounded to the nearest 5%, as the sliders set it.
+    nonisolated static func step(_ value: Double) -> Double { (value * 20).rounded() / 20 }
+
     /// The chosen project's test command as you'd type it, or empty if it has none.
     var testsLine: String {
         guard let tests = project.tests else { return "" }
