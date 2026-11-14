@@ -1,7 +1,7 @@
 import NestKit
 import SwiftUI
 
-/// How the chosen project's tasks run: model, effort, subagents; its tests and merging; and its memory.
+/// How the chosen project's tasks run: model, effort, subagents; its tests and merging.
 struct SwiftRunPanel: View {
     let page: SwiftPageModel
 
@@ -31,31 +31,6 @@ struct SwiftRunPanel: View {
                         .accessibilityIdentifier("swift.run.tests")
                     toggle("Merge green work by itself", isOn: page.project.autoMerge, id: "swift.run.merge") { page.setAutoMerge($0) }
                         .disabled(page.project.tests == nil)
-                }
-                SwiftSection("Memory · .nest/memory") {
-                    HStack(alignment: .firstTextBaseline, spacing: NestSpace.s2) {
-                        Text(page.memoryLine)
-                            .nestFont(.bodyS)
-                            .foregroundStyle(Color(NestColor.textSecondary))
-                            .fixedSize(horizontal: false, vertical: true)
-                            .accessibilityIdentifier("swift.memory.line")
-                        Spacer(minLength: NestSpace.s2)
-                        Button("Rebuild") { Task { await page.rebuildMemory() } }
-                            .buttonStyle(NestButtonStyle(.secondary, size: .small))
-                            .accessibilityIdentifier("swift.memory.rebuild")
-                    }
-                    Menu {
-                        ForEach(ClaudeModel.allCases, id: \.self) { model in
-                            Button(model.name) { page.setMemoryModel(model) }
-                        }
-                    } label: {
-                        Text("Built on \(page.project.memory.label)")
-                            .nestFont(.caption)
-                            .foregroundStyle(Color(NestColor.textMuted))
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
-                    .accessibilityIdentifier("swift.memory.model")
                 }
             }
         }

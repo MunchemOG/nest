@@ -20,15 +20,13 @@ public struct SwiftProject: Sendable, Equatable, Codable, Identifiable {
     public var importsQueueFile: Bool
     /// How the project's tasks run unless a task says otherwise.
     public var defaults: RunSettings
-    /// How the project's memory brief is built.
-    public var memory: RunSettings
     /// The project's share of your weekly cap, or nil for no limit of its own.
     public var share: Double?
 
     /// A project with every field given.
     public init(id: String, name: String, folder: String, base: String = "main", tests: [String]? = nil, autoMerge: Bool = false,
                 strictChecks: Bool = false, importsQueueFile: Bool = false, defaults: RunSettings = .everyday,
-                memory: RunSettings = .deepest, share: Double? = nil) {
+                share: Double? = nil) {
         self.id = id
         self.name = name
         self.folder = folder
@@ -38,7 +36,6 @@ public struct SwiftProject: Sendable, Equatable, Codable, Identifiable {
         self.strictChecks = strictChecks
         self.importsQueueFile = importsQueueFile
         self.defaults = defaults
-        self.memory = memory
         self.share = share
     }
 

@@ -33,8 +33,6 @@ final class SwiftPageModel {
     private(set) var reported: LimitSnapshot?
     /// About how many more tasks fit this week under your cap, once a run is logged.
     private(set) var tasksLeft: Int?
-    /// The chosen project's memory brief: how many sections, and which are stale; nil if it has none.
-    private(set) var memory: (sections: Int, stale: [String])?
 
     /// A page over one queue with fixed rules, and the Nest as its only project.
     init(queue: TaskQueue, rules: BudgetRules, log: UsageLog? = nil) {
@@ -119,13 +117,6 @@ final class SwiftPageModel {
         return tests.count == 3 && tests[0] == "/bin/sh" && tests[1] == "-c" ? tests[2] : tests.joined(separator: " ")
     }
 
-    /// The chosen project's memory, in one line.
-    var memoryLine: String {
-        guard let memory else { return "No memory yet. The next night builds it on \(project.memory.label)." }
-        let sections = memory.sections == 1 ? "1 section" : "\(memory.sections) sections"
-        return memory.stale.isEmpty ? "\(sections), all current" : "\(sections) · \(memory.stale.count) stale"
-    }
-
     /// What Swift keeps to, one line each.
     var boundaries: [String] {
         ["Keeps \(Self.percent(rules.reserve)) of the week back for you."]
@@ -136,17 +127,11 @@ final class SwiftPageModel {
 
     // MARK: What you do
 
-    /// Reads the chosen project's queue, its memory, and the latest limits again.
+    /// Reads the chosen project's queue and the latest limits again.
     func refresh() async {
         tonight = ((try? await queue(for: project).tasks()) ?? []).filter { $0.state == .queued || $0.state == .claimed }
         reported = (try? await log?.entries())?.last(where: { $0.limits != nil })?.limits
         tasksLeft = await tasksLeft(underCap: nil)
-        let project = project
-        if let brief = try? await ProjectMemory.read(in: project.url, at: project.base) {
-            memory = (brief.sections.count, (try? await ProjectMemory.stale(in: project.url, at: project.base)) ?? [])
-        } else {
-            memory = nil
-        }
     }
 
     /// Talks about the project with id `id` from now on.
@@ -213,8 +198,6 @@ final class SwiftPageModel {
     func setEffort(_ effort: Effort) { changeProject { $0.defaults.effort = effort } }
     /// Sets whether the chosen project's tasks may use subagents.
     func setSubagents(_ on: Bool) { changeProject { $0.defaults.subagents = on } }
-    /// Sets the model the chosen project's memory is built with.
-    func setMemoryModel(_ model: ClaudeModel) { changeProject { $0.memory.model = model } }
     /// Sets whether green work merges by itself.
     func setAutoMerge(_ on: Bool) { changeProject { $0.autoMerge = on } }
 
@@ -227,21 +210,6 @@ final class SwiftPageModel {
     /// Sets how one queued task runs; nil returns it to the project's default.
     func setRun(_ run: RunSettings?, for id: String) async {
         try? await queue(for: project).setRun(run, for: id)
-        await refresh()
-    }
-
-    /// Queues a full rebuild of the chosen project's memory brief.
-    func rebuildMemory() async {
-        let project = project
-        do {
-            if let id = try await ProjectMemory.rebuild(project, queue: queue(for: project)) {
-                say("Queued \(id): a full rebuild of \(project.name)'s memory on \(project.memory.label).")
-            } else {
-                say("A memory build for \(project.name) is already waiting.")
-            }
-        } catch {
-            say("I couldn't queue the rebuild: \(error.localizedDescription)")
-        }
         await refresh()
     }
 
