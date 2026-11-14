@@ -1,5 +1,7 @@
 # Swift's cockpit: projects, limits, models and memory
 
+> Superseded on 2026-11-14 by `2026-11-14-swift-claude-code-design.md`: the memory brief was dropped (S2-25), custom subagents are archived, and the chat became Claude Code itself.
+
 Approved in chat on 2026-11-14. Mithun picked the "Cockpit" layout and asked for it to look even better, then said to build it without stopping.
 
 ## Why

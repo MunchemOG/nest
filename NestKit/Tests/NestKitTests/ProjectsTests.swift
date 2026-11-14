@@ -40,7 +40,6 @@ struct ProjectsTests {
         #expect(nest.strictChecks)
         #expect(nest.importsQueueFile)
         #expect(nest.defaults == .everyday)
-        #expect(nest.memory == .deepest)
         #expect(nest.queueFile(in: folder) == folder.appending(path: "queue.sqlite"))
     }
 

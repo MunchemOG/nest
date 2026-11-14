@@ -143,22 +143,6 @@ struct SwiftCockpitTests {
         #expect(page.tonight.first?.run == nil)
     }
 
-    @Test func memoryShowsWhatTheBriefHoldsAndARebuildCanBeAsked() async throws {
-        let folder = try temp()
-        defer { try? FileManager.default.removeItem(at: folder) }
-        let nest = try repository(in: folder, named: "nest")
-        let (page, swift) = try await cockpit(nest: nest)
-        defer { try? FileManager.default.removeItem(at: swift) }
-        #expect(page.memoryLine == "No memory yet. The next night builds it on Opus · Max · agents.")
-
-        await page.rebuildMemory()
-
-        #expect(page.tonight.first?.id == "M-01")
-        #expect(page.tonight.first?.run == .deepest)
-        page.setMemoryModel(.fable)
-        #expect(page.project.memory.model == .fable)
-    }
-
     @Test func theCockpitLooksAsDesigned() async throws {
         let (page, folder) = try await cockpit(nest: URL(fileURLWithPath: "/Users/someone/Developer/nest"))
         defer { try? FileManager.default.removeItem(at: folder) }
