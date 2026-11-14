@@ -20,6 +20,13 @@ Swift is a visual wrapper around Claude Code that does nothing Claude Code doesn
 | Scheduled work | Any prompt can become a job: project, prompt, model, effort, Ultracode and mode, run at the next gap, tonight, at a time, or on repeat. Jobs run only while you're away, inside your limits, in a git worktree on their own branch (`swift/<job>`), so your working copy is never touched. Deleting the branch undoes the job. |
 | When you work | Learned from the timestamps of your messages in Claude Code's session history, by weekday and hour, over the last four weeks. An hour you've worked in at least twice is yours, and Swift doesn't run in it. |
 
+## Self-driving presence (S2-30)
+
+- **What Swift learns from:** all your work. That's the Mac's active minutes (keyboard or mouse use in a minute, counted per hour, kept only on this Mac in Swift's folder) and the timestamps of your Claude Code messages. Swift's own headless runs are not you and leave no activity.
+- **How it learns:** an hour of a day counts as worked if you messaged Claude in it or were active for at least 10 minutes. Each worked hour adds to its weekday-and-hour slot, weighted by how recent it is: 1 for the last week, 0.75, 0.5 and 0.25 for the three before. A slot scoring 1 or more is yours.
+- **When you count as away:** after 15 idle minutes in a gap, or after 60 idle minutes at any time. Touching the Mac makes you here again at once. "Hold Swift" in the menu bar keeps you here until you turn it off.
+- **Who follows it:** the autobuild and scheduled jobs. Swift decides only *when* to build. *What* to build comes from `docs/queue.md` and, later, Crow.
+
 ## Parts
 
 - **NestKit `ClaudeCode/`**
