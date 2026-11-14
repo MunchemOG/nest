@@ -22,7 +22,7 @@ struct AppFrame: View {
         ZStack(alignment: .leading) {
             Color(NestColor.sceneVoid).ignoresSafeArea()
             if screen == .home {
-                StudioView(state: home.studioState, latestActions: latestActions)
+                StudioView(state: home.studioState, latestActions: latestActions, clicked: home.studioClicked)
                     .ignoresSafeArea()
                     .accessibilityHidden(true)
                     .transition(.opacity)

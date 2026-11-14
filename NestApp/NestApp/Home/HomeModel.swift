@@ -103,6 +103,7 @@ final class HomeModel {
            let progress = FocusProgress(since: since, until: until, now: now, timeZone: .current) {
             state.progress[Bird.wren.rawValue] = progress.fraction
         }
+        state.focus = closeUp?.rawValue
         state.mode = facts.mode ?? "Night"
         state.until = facts.focusUntil
         return state
@@ -165,6 +166,15 @@ final class HomeModel {
         for await event in source.events() {
             receive(event)
         }
+    }
+
+    /// Answers a click in the studio: a bird with a close-up opens it, empty space closes it, other birds wait for theirs.
+    func studioClicked(_ bird: Bird?) {
+        guard let bird else {
+            closeUp = nil
+            return
+        }
+        if bird == .swift { open(bird) }
     }
 
     /// Opens `bird`'s close-up; Swift's page is made on first use.
