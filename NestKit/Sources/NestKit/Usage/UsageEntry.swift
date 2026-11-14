@@ -12,13 +12,16 @@ public struct UsageEntry: Sendable, Equatable {
     public let costUSD: Double
     /// The limits as they stood during the session.
     public let limits: LimitSnapshot?
+    /// The project the task belonged to, or nil for sessions logged before Swift had projects.
+    public let project: String?
 
     /// An entry with the given fields.
-    public init(task: String, started: Date, ended: Date, costUSD: Double, limits: LimitSnapshot?) {
+    public init(task: String, started: Date, ended: Date, costUSD: Double, limits: LimitSnapshot?, project: String? = nil) {
         self.task = task
         self.started = started
         self.ended = ended
         self.costUSD = costUSD
         self.limits = limits
+        self.project = project
     }
 }
