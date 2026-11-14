@@ -22,6 +22,8 @@ public struct SwiftProject: Sendable, Equatable, Codable, Identifiable {
     public var defaults: RunSettings
     /// The project's share of your weekly cap, or nil for no limit of its own.
     public var share: Double?
+    /// The tile colour you chose, or nil for the one its id gives it.
+    public var tint: ProjectTile?
 
     /// A project with every field given.
     public init(id: String, name: String, folder: String, base: String = "main", tests: [String]? = nil, autoMerge: Bool = false,
@@ -38,6 +40,14 @@ public struct SwiftProject: Sendable, Equatable, Codable, Identifiable {
         self.defaults = defaults
         self.share = share
     }
+
+    /// The colour of the project's tile.
+    public var tile: ProjectTile {
+        tint ?? ProjectTile.allCases[id.unicodeScalars.reduce(0) { $0 + Int($1.value) } % ProjectTile.allCases.count]
+    }
+
+    /// The letter on the project's tile.
+    public var initial: String { name.first(where: { $0.isLetter || $0.isNumber }).map { String($0).uppercased() } ?? "?" }
 
     /// The repository's folder as a URL.
     public var url: URL { URL(fileURLWithPath: folder) }
