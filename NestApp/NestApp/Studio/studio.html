@@ -89,7 +89,7 @@ function progressOf(id) { const f = S.progress[id]; return f == null ? null : { 
 function tagOf(id) { return S.tagLines[id] || ""; }
 const short = ev => ev.summary.replace(new RegExp("^" + (BI[ev.bird] != null ? B(ev.bird).name : "") + "('s)? "), "");
 window.nest = {
-  set(state) { Object.assign(S, state); if ("reduceMotion" in state) REDUCED = state.reduceMotion; if (typeof ui !== "undefined") ui.dirty = true; },
+  set(state) { state = { ...state }; if ("focus" in state) state.focus = state.focus == null ? null : (BI[state.focus] ?? null); Object.assign(S, state); if ("reduceMotion" in state) REDUCED = state.reduceMotion; if (typeof ui !== "undefined") ui.dirty = true; },
   hop(bird, summary) { const i = BI[bird]; if (i == null) return; birdEvent(i, summary ? { bird, summary } : null); if (typeof ui !== "undefined") ui.dirty = true; },
 };
 
@@ -416,11 +416,17 @@ renderer.domElement.addEventListener("pointermove", e => {
   hover = pick(e.clientX, e.clientY); renderer.domElement.style.cursor = hover != null ? "pointer" : "default";
 });
 renderer.domElement.addEventListener("pointerdown", e => { downAt = { x: e.clientX, y: e.clientY }; });
+// a click tells the app which bird (or empty space) was clicked; the app opens the close-up and sends the focus back
+const tell = id => window.webkit?.messageHandlers?.nest?.postMessage({ open: id });
 renderer.domElement.addEventListener("pointerup", e => {
+  const moved = !downAt || Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 6;
   downAt = null;
+  if (moved) return;
+  const i = pick(e.clientX, e.clientY);
+  tell(i != null ? BIRDS[i].id : null);
 });
 const tagsEl = $("tags");
-const tags = BIRDS.map((b, i) => { const el = document.createElement("button"); el.className = "tag"; el.style.setProperty("--c", b.color); el.style.animationDelay = (900 + i * 90) + "ms"; el.innerHTML = `<b>${b.name}</b><span class="s"><i class="dot"></i><span class="d"></span></span>`;  el.addEventListener("pointerenter", () => { hover = i; }); el.addEventListener("pointerleave", () => { hover = null; }); tagsEl.appendChild(el); return el; });
+const tags = BIRDS.map((b, i) => { const el = document.createElement("button"); el.className = "tag"; el.style.setProperty("--c", b.color); el.style.animationDelay = (900 + i * 90) + "ms"; el.innerHTML = `<b>${b.name}</b><span class="s"><i class="dot"></i><span class="d"></span></span>`;  el.addEventListener("click", () => tell(b.id)); el.addEventListener("pointerenter", () => { hover = i; }); el.addEventListener("pointerleave", () => { hover = null; }); tagsEl.appendChild(el); return el; });
 const ui = { dirty: true, slow: 0 };
 const tmp = new THREE.Vector3();
 function placeTags() {

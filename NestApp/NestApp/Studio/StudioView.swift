@@ -8,6 +8,8 @@ struct StudioView: NSViewRepresentable {
     let state: StudioState
     /// Each bird's newest action, so the studio can make it hop once when a new one arrives.
     let latestActions: [Bird: NestEvent]
+    /// Called with the bird you clicked in the studio, or nil for empty space.
+    let clicked: (Bird?) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @Environment(\.reduceMotionOverride) private var reduceMotionOverride
@@ -20,9 +22,21 @@ struct StudioView: NSViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
+    /// The name of the channel the page sends clicks on.
+    static let messageName = "nest"
+
+    /// What a message from the page means: `.some(bird)` for a click on a bird, `.some(nil)` for empty space, nil if it is not a click.
+    static func click(from body: Any) -> Bird?? {
+        guard let message = body as? [String: Any], let open = message["open"] else { return nil }
+        if open is NSNull { return .some(nil) }
+        guard let id = open as? String, let bird = Bird(rawValue: id) else { return nil }
+        return .some(bird)
+    }
+
     func makeNSView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.userContentController.addUserScript(WKUserScript(source: Self.fontFaces, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        configuration.userContentController.add(context.coordinator, name: Self.messageName)
         let view = WKWebView(frame: .zero, configuration: configuration)
         view.setValue(false, forKey: "drawsBackground")
         view.allowsMagnification = false
@@ -30,11 +44,13 @@ struct StudioView: NSViewRepresentable {
         view.setAccessibilityElement(false)
         Self.loadLocally(view)
         context.coordinator.view = view
+        context.coordinator.clicked = clicked
         context.coordinator.update(state: shownState, latestActions: latestActions)
         return view
     }
 
     func updateNSView(_ view: WKWebView, context: Context) {
+        context.coordinator.clicked = clicked
         context.coordinator.update(state: shownState, latestActions: latestActions)
     }
 
@@ -69,8 +85,9 @@ struct StudioView: NSViewRepresentable {
 
     /// Sends the state to the page once it has loaded, and again whenever it changes.
     @MainActor
-    final class Coordinator: NSObject, WKNavigationDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         weak var view: WKWebView?
+        var clicked: (Bird?) -> Void = { _ in }
         private var isLoaded = false
         private var sent: StudioState?
         private var state = StudioState()
@@ -88,6 +105,12 @@ struct StudioView: NSViewRepresentable {
                 isLoaded = true
                 hopped = latestActions.mapValues(\.id)
                 flush()
+            }
+        }
+
+        nonisolated func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+            MainActor.assumeIsolated {
+                if let bird = StudioView.click(from: message.body) { clicked(bird) }
             }
         }
 

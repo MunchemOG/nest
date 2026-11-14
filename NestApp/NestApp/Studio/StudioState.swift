@@ -14,6 +14,8 @@ struct StudioState: Hashable, Sendable {
     var until: String?
     /// Whether the studio should hold still (reduced motion).
     var reduceMotion = false
+    /// The bird whose close-up is open, by id; the camera flies to it and the others step aside.
+    var focus: String?
 
     /// The state as JavaScript object literal text.
     var script: String {
@@ -23,6 +25,7 @@ struct StudioState: Hashable, Sendable {
             "progress": progress,
             "mode": ["label": mode, "until": until.map { $0 as Any } ?? NSNull()],
             "reduceMotion": reduceMotion,
+            "focus": focus.map { $0 as Any } ?? NSNull(),
         ]
         let data = (try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])) ?? Data("{}".utf8)
         return String(decoding: data, as: UTF8.self)
