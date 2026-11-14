@@ -14,6 +14,10 @@ public struct ManualRunner: Sendable {
     public let watch: @Sendable (String) -> Void
     /// How a task's session runs when the task has no override, or nil to leave Claude Code's own defaults.
     public let defaults: RunSettings?
+    /// Whether the Nest's own checks run on the branch before it counts as done.
+    public let checks: Bool
+    /// The rules used when the repository has no `CLAUDE.md`, or nil to refuse such a repository.
+    public let fallbackRules: String?
 
     private let shell = Shell()
 
@@ -24,6 +28,8 @@ public struct ManualRunner: Sendable {
         tests: [String],
         base: String = "main",
         defaults: RunSettings? = nil,
+        checks: Bool = true,
+        fallbackRules: String? = nil,
         watch: @escaping @Sendable (String) -> Void = { _ in }
     ) {
         self.repository = repository
@@ -32,6 +38,8 @@ public struct ManualRunner: Sendable {
         self.base = base
         self.watch = watch
         self.defaults = defaults
+        self.checks = checks
+        self.fallbackRules = fallbackRules
     }
 
     /// What the session is told: the repository's rules, then the task and to leave merging alone.
@@ -47,9 +55,9 @@ public struct ManualRunner: Sendable {
         """
     }
 
-    /// The rules every session follows: the repository's `CLAUDE.md`.
+    /// The rules every session follows: the repository's `CLAUDE.md`, or the fallback rules when it has none.
     public func rules() throws -> String {
-        guard let rules = try? String(contentsOf: repository.appending(path: "CLAUDE.md"), encoding: .utf8) else {
+        guard let rules = (try? String(contentsOf: repository.appending(path: "CLAUDE.md"), encoding: .utf8)) ?? fallbackRules else {
             throw ManualRunnerError.noRules
         }
         return rules
@@ -74,12 +82,16 @@ public struct ManualRunner: Sendable {
             return finish(task, summary: summary, usage: usage, testsPassed: false, held: held)
         }
 
+        guard !tests.isEmpty else {
+            return finish(task, summary: summary, usage: usage, testsPassed: false, held: nil)
+        }
         watch("\(task.id): running the suite")
         let suite = try await shell.run(tests, in: repository, watch: watch)
         guard suite.succeeded else {
             return finish(task, summary: summary, usage: usage, testsPassed: false, held: "the suite failed when the runner ran it")
         }
 
+        guard checks else { return finish(task, summary: summary, usage: usage, testsPassed: true, held: nil) }
         watch("\(task.id): checking the branch")
         let problems = DoneChecks.problems(in: try await BranchDiff(base: base, branch: task.branch, in: repository))
         let held = problems.isEmpty ? nil : "the branch failed its checks: " + problems.joined(separator: " | ")

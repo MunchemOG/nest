@@ -7,11 +7,11 @@ public struct SwiftShift: Sendable {
     public let runner: QueueRunner
     /// The branch the queue file is read from and work merges into.
     public let base: String
-    /// The queue file's path inside the repository.
-    public let queuePath: String
+    /// The queue file's path inside the repository, or nil when the project keeps no queue file.
+    public let queuePath: String?
 
     /// A shift that drives `runner`, reading the queue file at `queuePath` on `base`.
-    public init(runner: QueueRunner, base: String = "main", queuePath: String = "docs/queue.md") {
+    public init(runner: QueueRunner, base: String = "main", queuePath: String? = "docs/queue.md") {
         self.runner = runner
         self.base = base
         self.queuePath = queuePath
@@ -21,8 +21,8 @@ public struct SwiftShift: Sendable {
     public func tick() async throws -> QueueRun? {
         guard let presence = runner.presence, await presence.current == "away" else { return nil }
         let repository = runner.runner.repository
-        let shown = try await Shell().run(["git", "show", "\(base):\(queuePath)"], in: repository)
-        if shown.succeeded {
+        if let queuePath, case let shown = try await Shell().run(["git", "show", "\(base):\(queuePath)"], in: repository),
+           shown.succeeded {
             try await QueueImport.add(QueueFile(text: shown.text),
                                       merged: try await QueueImport.merged(in: repository, base: base), to: runner.queue)
         }
