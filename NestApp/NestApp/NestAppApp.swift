@@ -16,6 +16,7 @@ struct NestAppApp: App {
 
     init() {
         let home = HomeModel()
+        home.pings = CriticalPings(send: SystemNotifications.post)
         _home = State(initialValue: home)
         _presence = State(initialValue: PresenceSwitch(model: home))
         do {
