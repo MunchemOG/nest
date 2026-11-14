@@ -18,7 +18,13 @@ struct NestAppApp: App {
         let home = HomeModel()
         home.pings = CriticalPings(send: SystemNotifications.post)
         _home = State(initialValue: home)
-        _presence = State(initialValue: PresenceSwitch(model: home))
+        let presence = PresenceSwitch(model: home)
+        _presence = State(initialValue: presence)
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
+            let swift = SwiftOnThisMac()
+            presence.tellSwift = swift.hear
+            swift.start { event in await home.receive(event) }
+        }
         do {
             try NestFont.registerBundledFonts()
         } catch {

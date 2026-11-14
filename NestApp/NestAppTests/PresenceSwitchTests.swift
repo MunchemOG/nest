@@ -21,4 +21,17 @@ struct PresenceSwitchTests {
         #expect(model.events.last?.data == ["to": .string("away"), "was": .string("here")])
         #expect(presence.isHere == false)
     }
+
+    @Test func swiftIsToldEveryFlipEvenWhenTheTimelineAlreadySaysSo() {
+        let model = HomeModel()
+        model.receive(.presenceChanged(to: "away", was: "here"))
+        let presence = PresenceSwitch(model: model)
+        var told: [String] = []
+        presence.tellSwift = { told.append($0) }
+
+        presence.isHere = false
+        presence.isHere = true
+
+        #expect(told == ["away", "here"])
+    }
 }

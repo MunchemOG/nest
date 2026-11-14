@@ -27,7 +27,7 @@ If these docs disagree, `CLAUDE.md` wins, then `docs/queue.md`, then the rest.
 
 - The look is final (approved 2026-11-12). Read `docs/design-status.md` before any UI work, and match the approved prototype `design/reference/home.html`. Every value still comes from `design/tokens.json`.
 - Done: all of Phase 1 (N1-01 to N1-24) and PB-01 to PB-06.
-- Order: S2-01 to S2-16, as listed in `docs/queue.md`.
+- Order: S2-01 to S2-17, as listed in `docs/queue.md`.
 - `docs/event-bus.md` is the contract for events. Code against it exactly.
 
 ## How a task runs

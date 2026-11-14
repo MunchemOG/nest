@@ -84,4 +84,5 @@ One task is one Claude Code session. Start each on its own branch (`task/<id>`).
 | S2-13 | Swift's page: chat, tonight's queue, usage, boundaries | You can add a task by chat and see it in the queue | S2-12 |
 | S2-14 | Critical-only pings | A simulated red sends one notification; a simulated amber sends none | S2-11 |
 | S2-15 | Learned forecast replaces the fixed reserve | Over a week of logged days, the forecast leaves at least what you actually used on every day | S2-09 |
-| S2-16 | A week of real overnight runs | The phase's done-means line | all |
+| S2-16 | Swift runs itself from the app: once you're away it brings in `docs/queue.md`, builds what's ready, merges green work and reports, with no one at the Mac | With you away and the budget open, a fixture night builds a ready task, merges it and publishes `swift.report.ready`; with you here it starts nothing | S2-14, S2-15 |
+| S2-17 | A week of real overnight runs | The phase's done-means line | all |
