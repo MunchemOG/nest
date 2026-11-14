@@ -8,7 +8,7 @@ struct HomeScreen: View {
 
     @Environment(\.timeZone) private var timeZone
 
-    private var swiftOpen: Bool { model.closeUp == .swift && model.swiftSession != nil }
+    private var swiftOpen: Bool { model.closeUp == .swift && model.swiftSessions != nil }
 
     var body: some View {
         Color.clear
@@ -42,8 +42,8 @@ struct HomeScreen: View {
                 }
             }
             .overlay(alignment: .topLeading) {
-                if swiftOpen, let session = model.swiftSession {
-                    SwiftSessionPanel(session: session, compact: false,
+                if swiftOpen, let sessions = model.swiftSessions {
+                    SwiftSessionPanel(sessions: sessions, compact: false,
                                       switchProject: { model.swiftLauncher = true },
                                       close: { model.closeUp = nil })
                         .frame(width: HomeLayout.session)
@@ -61,8 +61,8 @@ struct HomeScreen: View {
                 }
             }
             .overlay {
-                if swiftOpen, model.swiftLauncher, let session = model.swiftSession {
-                    SwiftLauncher(session: session) { model.swiftLauncher = false }
+                if swiftOpen, model.swiftLauncher, let sessions = model.swiftSessions {
+                    SwiftLauncher(sessions: sessions) { model.swiftLauncher = false }
                         .padding(.vertical, NestSpace.s8)
                         .transition(.opacity)
                 }

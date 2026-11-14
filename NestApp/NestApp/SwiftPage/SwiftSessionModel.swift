@@ -2,16 +2,19 @@ import Foundation
 import NestKit
 import Observation
 
-/// One live Claude Code session in the project you chose, shared by Swift's close-up and the small Swift.
+/// One Claude Code session in one project: a tab in Swift, shared by the close-up and the small Swift.
 /// It only drives Claude Code; everything it shows is what Claude Code said.
 @MainActor
 @Observable
-final class SwiftSessionModel {
+final class SwiftSessionModel: Identifiable {
     /// Your projects and limits.
     let page: SwiftPageModel
     /// Claude Code's own record of past sessions.
     let history: ClaudeHistory
-    private let command: [String]
+    /// The command that starts Claude Code.
+    let command: [String]
+    /// The id of the project this session runs in.
+    private(set) var projectID: String
 
     /// What you see of the session.
     private(set) var transcript: SessionTranscript
@@ -21,9 +24,9 @@ final class SwiftSessionModel {
     private(set) var title: String?
     /// Claude Code's slash commands.
     private(set) var commands: [SlashCommand] = []
-    /// The chosen project's past sessions, newest first.
+    /// This project's past sessions, newest first.
     private(set) var pastSessions: [PastSession] = []
-    /// Where the chosen project's repository stands.
+    /// Where this project's repository stands.
     private(set) var status = ProjectStatus(branch: nil, changed: 0)
     /// How full the live session's context is, once Claude Code has said.
     private(set) var context: ContextUsage?
@@ -36,19 +39,39 @@ final class SwiftSessionModel {
     var mode: PermissionMode?
     /// Whether your next message runs as Claude Code's multi-agent Ultracode.
     var ultracode = false
+    /// What you've typed and not sent yet, kept while you look at another tab.
+    var draft = ""
 
     private var session: ClaudeSession?
     private var started: (model: ClaudeModel, effort: Effort, mode: PermissionMode?)?
     private var listening: Task<Void, Never>?
 
-    /// A session model for `page`'s chosen project, reading history from `history` and starting Claude Code with `command`.
-    init(page: SwiftPageModel, history: ClaudeHistory = ClaudeHistory(), command: [String] = ClaudeSession.claude) {
+    /// A session in the project with id `project` (`page`'s chosen one when nil), reading history from `history`
+    /// and starting Claude Code with `command`.
+    init(page: SwiftPageModel, project id: String? = nil, history: ClaudeHistory = ClaudeHistory(),
+         command: [String] = ClaudeSession.claude) {
         self.page = page
         self.history = history
         self.command = command
-        transcript = SessionTranscript(folder: page.project.folder)
-        model = page.project.defaults.model
-        effort = page.project.defaults.effort
+        let project = page.projects.first { $0.id == id } ?? page.project
+        projectID = project.id
+        transcript = SessionTranscript(folder: project.folder)
+        model = project.defaults.model
+        effort = project.defaults.effort
+    }
+
+    /// The project this session runs in.
+    var project: SwiftProject { page.projects.first { $0.id == projectID } ?? page.project }
+
+    /// Whether nothing has happened in this session yet, so choosing a project can reuse it.
+    var isEmpty: Bool { transcript.items.isEmpty && sessionID == nil && session == nil }
+
+    /// Whether Claude is waiting on your answer.
+    var isWaiting: Bool { transcript.waiting != nil }
+
+    /// The tab's name: the session's title, or what you first said, or "New session".
+    var tabTitle: String {
+        title ?? transcript.items.first { $0.kind == .you }?.text.split(separator: "\n").first.map(String.init) ?? "New session"
     }
 
     /// Whether Claude is working on a turn.
@@ -73,23 +96,15 @@ final class SwiftSessionModel {
             try? await session.checkUsage()
             return
         }
-        let options = ClaudeSession.Options(folder: page.project.url, model: model, effort: effort, command: command)
+        let options = ClaudeSession.Options(folder: project.url, model: model, effort: effort, command: command)
         let read = await ClaudeSession.readUsage(options)
         if let usage = read.usage { page.heard(usage) }
         if let account = read.account { page.heard(account) }
     }
 
-    /// Asks Claude Code for your usage now and every five minutes until the task is cancelled.
-    func watchUsage() async {
-        while !Task.isCancelled {
-            await checkUsage()
-            try? await Task.sleep(for: .seconds(300))
-        }
-    }
-
-    /// Reads the chosen project's past sessions and repository status again.
+    /// Reads this project's past sessions and repository status again.
     func refresh() async {
-        let folder = page.project.url
+        let folder = project.url
         let history = history
         pastSessions = await Task.detached { history.sessions(in: folder) }.value
         status = await ProjectStatus.read(folder)
@@ -99,6 +114,10 @@ final class SwiftSessionModel {
     func send(_ text: String) async {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
+        if text == "/clear" {
+            newSession()
+            return
+        }
         transcript.add(you: text)
         do {
             let session = try await ready()
@@ -136,10 +155,10 @@ final class SwiftSessionModel {
         end()
         sessionID = nil
         title = nil
-        transcript = SessionTranscript(folder: page.project.folder)
+        transcript = SessionTranscript(folder: project.folder)
         context = nil
-        model = page.project.defaults.model
-        effort = page.project.defaults.effort
+        model = project.defaults.model
+        effort = project.defaults.effort
         ultracode = false
     }
 
@@ -149,14 +168,23 @@ final class SwiftSessionModel {
         sessionID = past.id
         title = past.title
         context = nil
-        transcript = history.transcript(of: past.id, in: page.project.url)
+        transcript = history.transcript(of: past.id, in: project.url)
     }
 
-    /// Switches to the project with id `id` and starts fresh there.
+    /// Moves this session to the project with id `id` and starts fresh there at once; the page follows.
     func open(_ id: String) async {
+        move(to: id)
         await page.select(id)
-        newSession()
         await refresh()
+    }
+
+    /// Moves this session to the project with id `id`, fresh, without waiting for anything.
+    func move(to id: String) {
+        guard page.projects.contains(where: { $0.id == id }) else { return }
+        projectID = id
+        newSession()
+        pastSessions = []
+        status = ProjectStatus(branch: nil, changed: 0)
     }
 
     /// Ends Claude Code's process; the session can be resumed later.
@@ -177,7 +205,7 @@ final class SwiftSessionModel {
             return session
         }
         end()
-        let options = ClaudeSession.Options(folder: page.project.url, model: model, effort: effort, mode: mode, resume: sessionID,
+        let options = ClaudeSession.Options(folder: project.url, model: model, effort: effort, mode: mode, resume: sessionID,
                                             command: command)
         let session = ClaudeSession(options)
         listening = Task { [weak self] in

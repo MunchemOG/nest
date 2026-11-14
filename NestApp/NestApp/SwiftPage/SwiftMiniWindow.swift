@@ -14,11 +14,11 @@ struct SwiftMiniWindow: View {
 
     var body: some View {
         Group {
-            if let session = home.swiftSession {
-                SwiftSessionPanel(session: session, compact: true, switchProject: { launcher = true },
+            if let sessions = home.swiftSessions {
+                SwiftSessionPanel(sessions: sessions, compact: true, switchProject: { launcher = true },
                                   close: { dismissWindow(id: Self.id) })
                     .sheet(isPresented: $launcher) {
-                        SwiftLauncher(session: session) { launcher = false }
+                        SwiftLauncher(sessions: sessions) { launcher = false }
                             .frame(minWidth: HomeLayout.session, minHeight: NestSpace.s10 * 4)
                     }
             } else {
