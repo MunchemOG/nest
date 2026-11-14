@@ -31,6 +31,35 @@ struct SwiftOnThisMacTests {
         #expect(runner.presence === presence)
     }
 
+    @Test func everyArgumentReachesClaudeCode() throws {
+        let home = try folder()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let bin = home.appending(path: ".local/bin")
+        try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
+        let claude = bin.appending(path: "claude")
+        try "#!/bin/sh\nprintf '%s|' \"$@\"\n".write(to: claude, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: claude.path)
+        let process = Process()
+        let output = Pipe()
+        process.executableURL = URL(fileURLWithPath: SwiftOnThisMac.session[0])
+        process.arguments = Array(SwiftOnThisMac.session.dropFirst()) + RunSettings.deepest.arguments + ["Do task Y-01"]
+        process.environment = ["HOME": home.path, "PATH": "/usr/bin:/bin"]
+        process.standardOutput = output
+        try process.run()
+        process.waitUntilExit()
+
+        let said = String(decoding: output.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        #expect(said == "-p|--output-format|stream-json|--verbose|--permission-mode|bypassPermissions|"
+                + "--model|opus|--effort|max|Do task Y-01|")
+    }
+
+    @Test func theNightRunnerUsesSwiftsEverydaySettings() async throws {
+        let folder = try folder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let runner = try await SwiftOnThisMac.runner(repository: Self.repository, folder: folder, presence: PresenceWatch()) { _ in }
+        #expect(runner.runner.defaults == .everyday)
+    }
+
     @Test func swiftHearsTheSwitchInTheOrderYouFlippedIt() async throws {
         let swift = SwiftOnThisMac()
 

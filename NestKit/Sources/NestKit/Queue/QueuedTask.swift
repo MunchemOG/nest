@@ -14,6 +14,8 @@ public struct QueuedTask: Sendable, Equatable {
     public let source: QueueSource
     /// Where the task is now.
     public let state: QueueState
+    /// How its session runs, or nil to use the project's default.
+    public let run: RunSettings?
 
     /// A task with the given fields, queued unless a state is given.
     public init(
@@ -23,7 +25,8 @@ public struct QueuedTask: Sendable, Equatable {
         priority: Int = 0,
         needs: [String] = [],
         source: QueueSource = .you,
-        state: QueueState = .queued
+        state: QueueState = .queued,
+        run: RunSettings? = nil
     ) {
         self.id = id
         self.goal = goal
@@ -32,5 +35,6 @@ public struct QueuedTask: Sendable, Equatable {
         self.needs = needs
         self.source = source
         self.state = state
+        self.run = run
     }
 }

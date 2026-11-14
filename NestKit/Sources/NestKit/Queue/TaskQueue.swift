@@ -18,15 +18,20 @@ public actor TaskQueue {
                 state TEXT NOT NULL
             )
             """)
+        let columns = try database.rows("PRAGMA table_info(tasks)").compactMap { $0.count > 1 ? $0[1].text : nil }
+        if !columns.contains("run") {
+            try database.execute("ALTER TABLE tasks ADD COLUMN run TEXT")
+        }
     }
 
     /// Adds `task` at the back of its priority, as given.
     public func add(_ task: QueuedTask) throws {
         do {
             try database.execute(
-                "INSERT INTO tasks (id, goal, done_means, priority, needs, source, state) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO tasks (id, goal, done_means, priority, needs, source, state, run) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 [.text(task.id), .text(task.goal), .text(task.doneMeans), .integer(task.priority),
-                 .text(task.needs.joined(separator: ",")), .text(task.source.rawValue), .text(task.state.rawValue)]
+                 .text(task.needs.joined(separator: ",")), .text(task.source.rawValue), .text(task.state.rawValue),
+                 task.run.map { .text($0.code) } ?? .null]
             )
         } catch let error as SQLiteError where error.code == Self.primaryKeyTaken {
             throw TaskQueueError.duplicate(task.id)
@@ -35,7 +40,7 @@ public actor TaskQueue {
 
     /// Every task, in the order they would be built: highest priority first, then the order they were added.
     public func tasks() throws -> [QueuedTask] {
-        try database.rows("SELECT id, goal, done_means, priority, needs, source, state FROM tasks ORDER BY priority DESC, rowid")
+        try database.rows("SELECT id, goal, done_means, priority, needs, source, state, run FROM tasks ORDER BY priority DESC, rowid")
             .compactMap(Self.task)
     }
 
@@ -55,7 +60,7 @@ public actor TaskQueue {
             }) else { return nil }
             try database.execute("UPDATE tasks SET state = ? WHERE id = ?", [.text(QueueState.claimed.rawValue), .text(next.id)])
             return QueuedTask(id: next.id, goal: next.goal, doneMeans: next.doneMeans, priority: next.priority,
-                              needs: next.needs, source: next.source, state: .claimed)
+                              needs: next.needs, source: next.source, state: .claimed, run: next.run)
         }
     }
 
@@ -69,13 +74,20 @@ public actor TaskQueue {
         guard database.changes == 1 else { throw TaskQueueError.notClaimed(id) }
     }
 
+    /// Sets how `id`'s session runs; nil returns it to the project's default.
+    public func setRun(_ run: RunSettings?, for id: String) throws {
+        try database.execute("UPDATE tasks SET run = ? WHERE id = ?", [run.map { .text($0.code) } ?? .null, .text(id)])
+        guard database.changes == 1 else { throw TaskQueueError.notFound(id) }
+    }
+
     private static func task(_ row: [SQLiteValue]) -> QueuedTask? {
-        guard row.count == 7, let id = row[0].text, let goal = row[1].text, let doneMeans = row[2].text,
+        guard row.count == 8, let id = row[0].text, let goal = row[1].text, let doneMeans = row[2].text,
               let priority = row[3].integer, let needs = row[4].text,
               let source = row[5].text.flatMap(QueueSource.init), let state = row[6].text.flatMap(QueueState.init)
         else { return nil }
         return QueuedTask(id: id, goal: goal, doneMeans: doneMeans, priority: priority,
-                          needs: needs.split(separator: ",").map(String.init), source: source, state: state)
+                          needs: needs.split(separator: ",").map(String.init), source: source, state: state,
+                          run: row[7].text.flatMap { RunSettings(code: $0) })
     }
 
     /// SQLite's extended code for a primary key that is already taken.

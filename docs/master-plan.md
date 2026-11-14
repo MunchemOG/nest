@@ -94,7 +94,7 @@ The dates are a guide: robotics season and school will shift them, and Swift sho
 | Bird | Decided |
 |---|---|
 | Wren | Starts with Downloads, then your Mithu folder; organizes everything except what could break code, break your Mac, or leak data; curated wallpapers that theme the whole Mac; invents its own modes, which also set volume, brightness, Night Shift, notifications, Low Power Mode, and Bluetooth (never security settings) |
-| Swift | Touches only the Nest's code; plan mode first for Crow's ideas; auto-merges on green tests with automatic rollback; forecasts your usage and works in the gaps, protecting robotics time; reports wait until you sit down; pings only when critical; mission-control voice |
+| Swift | Touches only the projects you assign (the Nest by the strictest rules); plan mode first for Crow's ideas; auto-merges on green tests with automatic rollback; forecasts your usage and works in the gaps, protecting robotics time; reports wait until you sit down; pings only when critical; mission-control voice |
 | Crow | Pitches whenever it judges it's needed, at calm moments; watches all the time, including screen content, on-device, with no keystroke logging; ideates beyond the Nest |
 | Owl | Camera on only while you're at the laptop or it wakes, off once the screen locks; context-based distraction (no app lists); four-step nudge ladder; spoken and animated greeting; lock, pause the flock, and alert you when a stranger sits down, with a guest mode |
 | Magpie | Remembers anything useful except passwords, keys, account and ID numbers, and private browsing; its own view in the Nest app plus Obsidian; your edits always win; archives only when it helps |
